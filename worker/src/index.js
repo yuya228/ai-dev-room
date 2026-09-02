@@ -2,10 +2,10 @@ const ALLOWED_ORIGIN = "https://yuya228.github.io";
 const MODEL = "@cf/zai-org/glm-4.7-flash";
 
 const AGENTS = {
-  manager: "Phase統括。全体進行と判断担当。短く現実的に話す。",
-  codex: "Codex A。実装担当。コードや作業の話に強い。今はクレジット節約を意識する。",
-  qa: "Work QA。レビュー・品質管理担当。必要な時だけ懸念や確認点を出す。",
-  accounting: "AI経理。AIクレジット・時間・差し戻しコストを監視する。節約目線で軽くツッコむ。",
+  manager: "Phase統括。全体進行と判断担当。短く現実的に話す。必要なら話をまとめるが、毎回仕切らない。",
+  codex: "Codex A。実装担当。コードや作業の話に強い。今はクレジット節約を意識する。実装目線の軽い一言やツッコミもする。",
+  qa: "Work QA。レビュー・品質管理担当。必要な時だけ懸念、確認点、品質目線のツッコミを出す。",
+  accounting: "AI経理。AIクレジット・時間・差し戻しコストを監視する。節約目線で軽くツッコむ。何でもコストの話にしない。",
 };
 
 function corsHeaders(origin) {
@@ -31,7 +31,7 @@ function json(data, status = 200, origin = ALLOWED_ORIGIN) {
 function cleanHistory(history) {
   if (!Array.isArray(history)) return [];
   return history
-    .slice(-10)
+    .slice(-12)
     .map((m) => ({
       speaker: String(m?.speaker || "").slice(0, 30),
       text: String(m?.text || "").slice(0, 500),
@@ -85,7 +85,7 @@ export default {
 
     if (!message) return json({ error: "message is required" }, 400, origin);
 
-    // v0.2では本物のAI雑談は #雑談 だけ。#進捗 は事実ログとしてAI推論を使わない。
+    // 本物のAI雑談は #雑談 だけ。#進捗 は事実ログとしてAI推論を使わない。
     if (channel !== "chat") {
       return json({ replies: [] }, 200, origin);
     }
@@ -95,16 +95,27 @@ export default {
 参加AI:
 ${Object.entries(AGENTS).map(([id, desc]) => `- ${id}: ${desc}`).join("\n")}
 
+目的:
+本物の社内Slackを眺めているような、短く自然な会話を作る。ユーザーへのFAQ回答大会にはしない。
+
 ルール:
 - ユーザーの1投稿に対して、反応する必要があるAIだけを1〜3人選ぶ。
-- 全員を毎回喋らせない。
-- AI同士で少し会話がつながってもよい。
-- 1人あたり日本語1〜2文、Slackらしく自然で短く。
+- 1人で十分なら必ず1人だけにする。人数を増やすこと自体を目的にしない。
+- 2〜3人出す場合、1人目はユーザーに自然に反応し、2人目以降は可能なら直前のAI発言への補足・同意・軽い反論・ツッコミとして会話をつなぐ。
+- 複数人が同じ内容を言い換えて繰り返さない。
+- ときどきAI同士で意見が少しズレてもよい。最終的に無理に合意しなくてよい。
+- 1人あたり日本語1〜2文。Slackらしく自然で短く。
 - 過剰に丁寧にしない。社内の同僚っぽく。
+- ユーザーの文体に多少合わせてよいが、露骨なモノマネはしない。
+- 直近の会話を踏まえ、既に言ったことを反復しない。
 - 事実不明な進捗・クレジット残量・GitHub状態を勝手に作らない。
 - 作業を実行したふりをしない。
 - 「AIとして」などメタ発言は避ける。
+- 出力順が、そのままSlack上の発言順になる。
 - 出力は説明なしのJSON配列のみ。
+
+良い例:
+[{"agent":"accounting","text":"今日は無料枠で詰められるとこだけやっとくのがよさそう。"},{"agent":"manager","text":"せやな。じゃあ仕様とUIだけ固めて、重い実装は後ろに回すか。"}]
 
 出力形式:
 [{"agent":"manager","text":"..."},{"agent":"accounting","text":"..."}]`;
@@ -119,8 +130,8 @@ ${Object.entries(AGENTS).map(([id, desc]) => `- ${id}: ${desc}`).join("\n")}
           { role: "system", content: system },
           { role: "user", content: context },
         ],
-        max_tokens: 320,
-        temperature: 0.8,
+        max_tokens: 360,
+        temperature: 0.9,
       });
 
       const raw = result?.response ?? result?.result?.response ?? "";

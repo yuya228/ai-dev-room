@@ -66,7 +66,7 @@ let current='chat',busy=false,progressLoading=false,lastProgressFetch=0,phasePro
 try{let raw=localStorage.getItem(STORAGE_KEY);if(!raw){for(const k of LEGACY_KEYS){raw=localStorage.getItem(k);if(raw)break}}const saved=JSON.parse(raw||'null');if(Array.isArray(saved?.rooms?.chat?.messages))rooms.chat.messages=saved.rooms.chat.messages.slice(-200);if(saved?.current==='chat'||saved?.current==='progress')current=saved.current}catch(e){console.warn('Saved chat could not be loaded',e)}
 const feed=document.getElementById('feed'),title=document.getElementById('title'),desc=document.getElementById('desc'),input=document.getElementById('input'),rule=document.getElementById('roomRule'),sendBtn=document.getElementById('send'),note=document.getElementById('note'),modePill=document.getElementById('modePill');
 const drawer=document.getElementById('drawer'),drawerBackdrop=document.getElementById('drawerBackdrop'),settingsDetail=document.getElementById('settingsDetail');
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[c]))}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
 function now(){return new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}
 function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({version:7,current,rooms:{chat:{messages:rooms.chat.messages.slice(-200)}}}))}catch(e){console.warn('Chat save failed',e)}}
 function pushChat(entry){rooms.chat.messages.push(entry);if(rooms.chat.messages.length>200)rooms.chat.messages=rooms.chat.messages.slice(-200);saveState()}

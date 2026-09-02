@@ -78,8 +78,6 @@ function extractModelOutput(value, depth = 0) {
     return "";
   }
 
-  // Cloudflare's synchronous GLM response is OpenAI-like: choices[].message.content.
-  // Some binding versions additionally nest that response under response/result.
   const candidates = [
     value?.choices?.[0]?.message?.content,
     value?.choices?.[0]?.message,
@@ -167,6 +165,15 @@ function parseReplies(raw) {
     : [];
 }
 
+function finishReason(result) {
+  return String(
+    result?.choices?.[0]?.finish_reason ??
+    result?.response?.choices?.[0]?.finish_reason ??
+    result?.result?.choices?.[0]?.finish_reason ??
+    ""
+  );
+}
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || ALLOWED_ORIGIN;
@@ -241,11 +248,21 @@ ${Object.entries(AGENTS).map(([id, desc]) => `- ${id}: ${desc}`).join("\n")}
           { role: "system", content: system },
           { role: "user", content: context },
         ],
-        max_tokens: 360,
+        max_completion_tokens: 1024,
+        reasoning_effort: "low",
         temperature: 0.9,
       });
 
       const replies = parseReplies(result);
+      if (!replies.length) {
+        const reason = finishReason(result);
+        console.warn("Workers AI returned no displayable reply", { finishReason: reason || "unknown" });
+        return json({
+          error: "AI returned no displayable reply",
+          detail: reason ? `finish_reason=${reason}` : "empty model content",
+        }, 502, origin);
+      }
+
       return json({ replies, model: MODEL }, 200, origin);
     } catch (error) {
       console.error(error);

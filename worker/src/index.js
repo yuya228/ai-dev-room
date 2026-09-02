@@ -39,20 +39,72 @@ function cleanHistory(history) {
     .filter((m) => m.text);
 }
 
-function parseReplies(text) {
-  const trimmed = String(text || "").trim();
-  const match = trimmed.match(/\[[\s\S]*\]/);
-  if (!match) throw new Error("Model did not return a JSON array");
-  const parsed = JSON.parse(match[0]);
-  if (!Array.isArray(parsed)) throw new Error("Invalid reply format");
+function normalizeReplies(value) {
+  const list = Array.isArray(value)
+    ? value
+    : Array.isArray(value?.replies)
+      ? value.replies
+      : null;
 
-  return parsed
+  if (!list) return null;
+
+  return list
     .slice(0, 3)
     .map((r) => ({
       agent: ["manager", "codex", "qa", "accounting"].includes(r?.agent) ? r.agent : "manager",
       text: String(r?.text || "").trim().slice(0, 320),
     }))
     .filter((r) => r.text);
+}
+
+function parseReplies(raw) {
+  const direct = normalizeReplies(raw);
+  if (direct) return direct;
+
+  const trimmed = String(raw || "").trim();
+  if (!trimmed) return [];
+
+  const unfenced = trimmed
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+
+  for (const candidate of [unfenced, trimmed]) {
+    try {
+      const parsed = JSON.parse(candidate);
+      const replies = normalizeReplies(parsed);
+      if (replies) return replies;
+    } catch {
+      // Continue with tolerant extraction below.
+    }
+  }
+
+  const arrayStart = unfenced.indexOf("[");
+  const arrayEnd = unfenced.lastIndexOf("]");
+  if (arrayStart !== -1 && arrayEnd > arrayStart) {
+    try {
+      const replies = normalizeReplies(JSON.parse(unfenced.slice(arrayStart, arrayEnd + 1)));
+      if (replies) return replies;
+    } catch {
+      // Fall through.
+    }
+  }
+
+  const objectStart = unfenced.indexOf("{");
+  const objectEnd = unfenced.lastIndexOf("}");
+  if (objectStart !== -1 && objectEnd > objectStart) {
+    try {
+      const replies = normalizeReplies(JSON.parse(unfenced.slice(objectStart, objectEnd + 1)));
+      if (replies) return replies;
+    } catch {
+      // Fall through.
+    }
+  }
+
+  // GLM occasionally ignores the JSON-only instruction and returns plain text.
+  // Keep the chat usable instead of surfacing a parser error to the user.
+  const fallbackText = unfenced.replace(/```(?:json)?|```/gi, "").trim().slice(0, 320);
+  return fallbackText ? [{ agent: "manager", text: fallbackText }] : [];
 }
 
 export default {

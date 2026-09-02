@@ -44,7 +44,9 @@ function normalizeReplies(value) {
     ? value
     : Array.isArray(value?.replies)
       ? value.replies
-      : null;
+      : value && typeof value === "object" && ("agent" in value || "text" in value)
+        ? [value]
+        : null;
 
   if (!list) return null;
 
@@ -58,36 +60,35 @@ function normalizeReplies(value) {
 }
 
 function extractModelOutput(value, depth = 0) {
-  if (value == null || depth > 5) return "";
+  if (value == null || depth > 8) return "";
 
   const direct = normalizeReplies(value);
   if (direct?.length) return value;
 
   if (typeof value === "string") return value.trim();
-
-  if (Array.isArray(value)) {
-    const text = value
-      .map((part) => {
-        if (typeof part === "string") return part;
-        if (typeof part?.text === "string") return part.text;
-        if (typeof part?.content === "string") return part.content;
-        return "";
-      })
-      .filter(Boolean)
-      .join("\n")
-      .trim();
-    return text;
-  }
-
   if (typeof value !== "object") return "";
 
+  if (Array.isArray(value)) {
+    for (const part of value) {
+      const extracted = extractModelOutput(part, depth + 1);
+      if (typeof extracted === "string" ? extracted.trim() : normalizeReplies(extracted)?.length) {
+        return extracted;
+      }
+    }
+    return "";
+  }
+
+  // Cloudflare's synchronous GLM response is OpenAI-like: choices[].message.content.
+  // Some binding versions additionally nest that response under response/result.
   const candidates = [
     value?.choices?.[0]?.message?.content,
+    value?.choices?.[0]?.message,
     value?.choices?.[0]?.text,
     value?.message?.content,
-    value?.output_text,
+    value?.message,
     value?.content,
     value?.text,
+    value?.output_text,
     value?.response,
     value?.result,
   ];
@@ -104,9 +105,10 @@ function extractModelOutput(value, depth = 0) {
 
 function parseReplies(raw) {
   const direct = normalizeReplies(raw);
-  if (direct) return direct;
+  if (direct?.length) return direct;
 
-  const trimmed = String(raw || "").trim();
+  const extracted = typeof raw === "string" ? raw : extractModelOutput(raw);
+  const trimmed = String(extracted || "").trim();
   if (!trimmed) return [];
 
   const unfenced = trimmed
@@ -118,7 +120,13 @@ function parseReplies(raw) {
     try {
       const parsed = JSON.parse(candidate);
       const replies = normalizeReplies(parsed);
-      if (replies) return replies;
+      if (replies?.length) return replies;
+
+      const nested = extractModelOutput(parsed);
+      if (nested && nested !== candidate) {
+        const nestedReplies = parseReplies(nested);
+        if (nestedReplies.length) return nestedReplies;
+      }
     } catch {
       // Continue with tolerant extraction below.
     }
@@ -129,7 +137,7 @@ function parseReplies(raw) {
   if (arrayStart !== -1 && arrayEnd > arrayStart) {
     try {
       const replies = normalizeReplies(JSON.parse(unfenced.slice(arrayStart, arrayEnd + 1)));
-      if (replies) return replies;
+      if (replies?.length) return replies;
     } catch {
       // Fall through.
     }
@@ -139,17 +147,24 @@ function parseReplies(raw) {
   const objectEnd = unfenced.lastIndexOf("}");
   if (objectStart !== -1 && objectEnd > objectStart) {
     try {
-      const replies = normalizeReplies(JSON.parse(unfenced.slice(objectStart, objectEnd + 1)));
-      if (replies) return replies;
+      const parsed = JSON.parse(unfenced.slice(objectStart, objectEnd + 1));
+      const replies = normalizeReplies(parsed);
+      if (replies?.length) return replies;
+
+      const nested = extractModelOutput(parsed);
+      if (nested && nested !== unfenced) {
+        const nestedReplies = parseReplies(nested);
+        if (nestedReplies.length) return nestedReplies;
+      }
     } catch {
       // Fall through.
     }
   }
 
-  // GLM occasionally ignores the JSON-only instruction and returns plain text.
-  // Keep the chat usable instead of surfacing a parser error to the user.
   const fallbackText = unfenced.replace(/```(?:json)?|```/gi, "").trim().slice(0, 320);
-  return fallbackText ? [{ agent: "manager", text: fallbackText }] : [];
+  return fallbackText && fallbackText !== "[object Object]"
+    ? [{ agent: "manager", text: fallbackText }]
+    : [];
 }
 
 export default {
@@ -182,7 +197,6 @@ export default {
 
     if (!message) return json({ error: "message is required" }, 400, origin);
 
-    // 本物のAI雑談は #雑談 だけ。#進捗 は事実ログとしてAI推論を使わない。
     if (channel !== "chat") {
       return json({ replies: [] }, 200, origin);
     }
@@ -231,8 +245,7 @@ ${Object.entries(AGENTS).map(([id, desc]) => `- ${id}: ${desc}`).join("\n")}
         temperature: 0.9,
       });
 
-      const raw = extractModelOutput(result);
-      const replies = parseReplies(raw);
+      const replies = parseReplies(result);
       return json({ replies, model: MODEL }, 200, origin);
     } catch (error) {
       console.error(error);

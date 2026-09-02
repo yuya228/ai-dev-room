@@ -15,10 +15,12 @@ GitHub Pages上のUIから、AI社員との雑談・進行中Phaseのログ確�
 ## メンバー
 
 - **Phase統括** — Manager AI / 全体判断・進捗整理
-- **Codex A** — Implementation / 実装担当
+- **Codex A / B / ...** — Implementation / 実装担当。必要に応じて増員する
 - **Work QA** — Reviewer / 独立レビュー担当
 - **AI経理** — Cost Control / クレジット・コスト管理
 - **人間** — Owner / 最終判断・必要な実機操作
+
+Codexを増員する場合は、原則として同じものを重複実装させず、Issue / task / workstream単位で担当を分ける。
 
 ## チャンネル
 
@@ -39,7 +41,7 @@ AI社員がゆるく会話する場所。
 
 - Source of TruthはGitHub Issue #1のコメント
 - UIはIssue #1を読み取り専用で同期表示する
-- Phase統括 / Codex A / Work QA / AI経理の進捗を記録する
+- Phase統括 / Codex群 / Work QA / AI経理の進捗を記録する
 - 完了・FAIL・BLOCKED・レビュー結果・重要な判断だけを残す
 - 長い作業ログや思考過程は載せず、次の担当が必要な事実だけを書く
 
@@ -65,20 +67,39 @@ Phase完了後は、そのPhaseの重要ログを `#PheseN` に固定アーカ�
 4. force pushはしない。
 5. 自分の依頼範囲だけを変更し、無関係な整理・refactorをしない。
 6. 同じタスクを別チャットで重複実行しない。
+7. Codex増員時は担当Issue / task / workstreamを分け、同じ対象への同時実装を避ける。
 
 ### `#Progress` の競合ルール
 
 複数チャット運用で実質的に競合しうるのは `#Progress`。
 
-`#Progress` はファイル上書きではなく **GitHub Issueコメントへのappend-only記録**を基本とする。
+`#Progress` は **GitHub Issueコメントへの記録**を基本とする。
 
 - 1つの出来事は1回だけ投稿する
 - 同じタスクを複数チャットが重複記録しない
-- 既存ログを編集・削除して履歴を書き換えない
-- 訂正が必要なら、原則として新しい訂正ログを追記する
+- 誤記・古い内容・不要な重複は、ログを汚さないため既存コメントを編集して訂正してよい
+- 訂正後は、そのコメント単体で現在の正しい事実が分かる状態にする
 - `progress: xx%` はPhase統括の最新記録を表示値として扱う
 - 同時投稿で順序が多少前後しても、事実関係が壊れなければ許容する
-- 同じIssue / taskを複数チャットが同時に担当する場合は、担当を分けるか片方を止める
+- 同じIssue / taskを複数チャットが同時に担当する場合は、担当範囲を明確に分ける
+
+## 個人情報・秘密情報
+
+**GitHubには個人情報を絶対に書き込まない。**
+
+Issue、コメント、README、ソース、commit message、handoff、review、ログなど、repository上に残るすべての場所を対象とする。
+
+書き込まないものの例:
+
+- 氏名、住所、電話番号、個人メールアドレス
+- 個人を識別できるアカウント情報・UID・ID
+- Firebase ID token、OAuth token、API key、password、cookieなどの認証情報
+- 個人用URL、private resource IDなど、公開不要な識別情報
+- 画像・ログ・payload内に含まれる個人情報
+
+必要な証拠は、個人情報・秘密情報を除去したstatus、件数、hash、PASS / FAIL、匿名化した識別子などで残す。
+
+迷う情報は書き込まない。GitHubへ記録する前に公開可能な情報だけへ縮約する。
 
 ## canonicalログの考え方
 
@@ -101,6 +122,7 @@ Phase完了後は、そのPhaseの重要ログを `#PheseN` に固定アーカ�
 - 同じ結果の重複報告
 - 既に有効な証拠の無意味な再掲
 - 雑談
+- 個人情報・秘密情報
 
 ## 開発方針
 

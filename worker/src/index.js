@@ -57,29 +57,49 @@ function normalizeReplies(value) {
     .filter((r) => r.text);
 }
 
-function extractModelOutput(result) {
-  const candidates = [
-    result?.response,
-    result?.result?.response,
-    result?.choices?.[0]?.message?.content,
-    result?.result?.choices?.[0]?.message?.content,
-    result?.choices?.[0]?.text,
-    result?.result?.choices?.[0]?.text,
-    result?.output_text,
-    result?.result?.output_text,
-    typeof result === "string" ? result : null,
-  ];
+function extractModelOutput(value, depth = 0) {
+  if (value == null || depth > 5) return "";
 
-  for (const value of candidates) {
-    if (value == null) continue;
-    if (typeof value === "string") {
-      if (value.trim()) return value;
-      continue;
-    }
-    if (typeof value === "object") return value;
+  const direct = normalizeReplies(value);
+  if (direct?.length) return value;
+
+  if (typeof value === "string") return value.trim();
+
+  if (Array.isArray(value)) {
+    const text = value
+      .map((part) => {
+        if (typeof part === "string") return part;
+        if (typeof part?.text === "string") return part.text;
+        if (typeof part?.content === "string") return part.content;
+        return "";
+      })
+      .filter(Boolean)
+      .join("\n")
+      .trim();
+    return text;
   }
 
-  return result;
+  if (typeof value !== "object") return "";
+
+  const candidates = [
+    value?.choices?.[0]?.message?.content,
+    value?.choices?.[0]?.text,
+    value?.message?.content,
+    value?.output_text,
+    value?.content,
+    value?.text,
+    value?.response,
+    value?.result,
+  ];
+
+  for (const candidate of candidates) {
+    const extracted = extractModelOutput(candidate, depth + 1);
+    if (typeof extracted === "string" ? extracted.trim() : normalizeReplies(extracted)?.length) {
+      return extracted;
+    }
+  }
+
+  return "";
 }
 
 function parseReplies(raw) {

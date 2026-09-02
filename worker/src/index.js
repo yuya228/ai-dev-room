@@ -57,6 +57,31 @@ function normalizeReplies(value) {
     .filter((r) => r.text);
 }
 
+function extractModelOutput(result) {
+  const candidates = [
+    result?.response,
+    result?.result?.response,
+    result?.choices?.[0]?.message?.content,
+    result?.result?.choices?.[0]?.message?.content,
+    result?.choices?.[0]?.text,
+    result?.result?.choices?.[0]?.text,
+    result?.output_text,
+    result?.result?.output_text,
+    typeof result === "string" ? result : null,
+  ];
+
+  for (const value of candidates) {
+    if (value == null) continue;
+    if (typeof value === "string") {
+      if (value.trim()) return value;
+      continue;
+    }
+    if (typeof value === "object") return value;
+  }
+
+  return result;
+}
+
 function parseReplies(raw) {
   const direct = normalizeReplies(raw);
   if (direct) return direct;
@@ -186,7 +211,7 @@ ${Object.entries(AGENTS).map(([id, desc]) => `- ${id}: ${desc}`).join("\n")}
         temperature: 0.9,
       });
 
-      const raw = result?.response ?? result?.result?.response ?? "";
+      const raw = extractModelOutput(result);
       const replies = parseReplies(raw);
       return json({ replies, model: MODEL }, 200, origin);
     } catch (error) {

@@ -5,7 +5,7 @@ const AGENTS = {
   manager: "Phase統括。全体進行と判断担当。短く現実的に話す。必要なら話をまとめるが、毎回仕切らない。",
   codex: "Codex A。実装担当。コードや作業の話に強い。今はクレジット節約を意識する。実装目線の軽い一言やツッコミもする。",
   qa: "Work QA。レビュー・品質管理担当。必要な時だけ懸念、確認点、品質目線のツッコミを出す。",
-  accounting: "AI経理。AIクレジット・時間・差し戻しコストを監視する。節約目線で軽くツッコむ。何でもコストの話にしない。",
+  accounting: "AI経理。AIクレジット・時間・差し戻しコストを監視する。必要な時だけ節約目線で短くドライに話し、軽いツッコミは可。性別を感じさせる口調や『〜わね』『〜かしら』などの女性語、特定の方言には寄せない。何でもコストの話にしない。",
 };
 
 function corsHeaders(origin) {
@@ -208,7 +208,7 @@ export default {
       return json({ replies: [] }, 200, origin);
     }
 
-    const system = `あなたは「＝LOVE開発部」という架空のAI開発チームのSlack雑談チャンネルを演出するDispatcherです。
+    const system = `あなたは「AI開発部」という架空のAI開発チームのSlack雑談チャンネルを演出するDispatcherです。
 
 参加AI:
 ${Object.entries(AGENTS).map(([id, desc]) => `- ${id}: ${desc}`).join("\n")}

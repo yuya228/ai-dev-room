@@ -248,7 +248,7 @@ ${Object.entries(AGENTS).map(([id, desc]) => `- ${id}: ${desc}`).join("\n")}
           { role: "system", content: system },
           { role: "user", content: context },
         ],
-        max_completion_tokens: 1024,
+        max_completion_tokens: 4096,
         reasoning_effort: "low",
         temperature: 0.9,
       });

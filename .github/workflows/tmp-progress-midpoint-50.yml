@@ -1,0 +1,43 @@
+name: Temporary progress midpoint 50
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: "${{ github.event.head_commit.message == 'chore: run temporary progress midpoint 50' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Move progress midpoint to 50 percent
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          text = p.read_text(encoding='utf-8')
+          old = 'background:linear-gradient(90deg,#4b42ff 0%,#8d52ff 30%,#d96dff 100%)'
+          new = 'background:linear-gradient(90deg,#4b42ff 0%,#8d52ff 50%,#d96dff 100%)'
+          n = text.count(old)
+          if n != 1:
+              raise SystemExit(f'gradient target count={n}')
+          p.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          git diff --check
+          grep -F 'background:linear-gradient(90deg,#4b42ff 0%,#8d52ff 50%,#d96dff 100%)' index.html
+      - name: Commit change and remove runner
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/tmp-progress-midpoint-50.yml
+          git add index.html
+          git commit -m 'style: move progress midpoint to 50 percent'
+          git push origin HEAD:main

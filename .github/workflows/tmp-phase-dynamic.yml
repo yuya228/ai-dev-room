@@ -1,0 +1,86 @@
+name: Temporary Phase dynamic patch
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: "${{ github.event.head_commit.message == 'chore: run temporary phase dynamic patch' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch dynamic Phase manifest and latest-on-open
+        run: python .github/tmp-phase-dynamic.py
+
+      - name: Validate patch
+        shell: bash
+        run: |
+          git diff --check
+          python - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          text = Path('index.html').read_text(encoding='utf-8')
+          readme = Path('README.md').read_text(encoding='utf-8')
+          manifest = json.loads(Path('phase-manifest.json').read_text(encoding='utf-8'))
+
+          required = [
+              "PHASE_MANIFEST_URL='./phase-manifest.json'",
+              'function normalizePhaseManifest(data)',
+              'function applyPhaseManifest(data)',
+              'function loadPhaseManifest()',
+              'function roomHasGitHubIssueSource(r)',
+              'function scrollFeedToLatest()',
+              "rooms.progress.desc=`Phase ${activePhase}の活動ログ`",
+              "return ['chat',...archives,'progress'",
+              "sourceFormat==='progress'",
+              'keeping previous-good manifest',
+          ]
+          for marker in required:
+              if marker not in text:
+                  raise SystemExit(f'missing index marker: {marker}')
+          if 'const PROGRESS_API=' in text:
+              raise SystemExit('legacy fixed PROGRESS_API remains')
+          if text.count('function scrollFeedToLatest()') != 1:
+              raise SystemExit('latest helper count mismatch')
+          if text.count('function loadPhaseManifest()') != 1:
+              raise SystemExit('manifest loader count mismatch')
+          if manifest.get('version') != 1 or manifest.get('activePhase') != 2:
+              raise SystemExit('manifest current Phase mismatch')
+          if manifest.get('progress',{}).get('source',{}).get('url') != 'https://github.com/yuya228/ai-dev-room/issues/2':
+              raise SystemExit('manifest Progress source mismatch')
+          policy = manifest.get('transitionPolicy',{})
+          if policy.get('requiresExplicitUserApproval') is not True or policy.get('executor') != 'Phase統括' or policy.get('browserWriteAccess') is not False:
+              raise SystemExit('transition policy mismatch')
+          if '進捗率100%だけでは切り替えない' not in readme or 'Phase切替の担当' not in readme:
+              raise SystemExit('README transition guard missing')
+
+          scripts = re.findall(r'<script[^>]*>(.*?)</script>', text, re.S | re.I)
+          Path('/tmp/app.js').write_text('\n'.join(scripts), encoding='utf-8')
+          PY
+          node --check /tmp/app.js
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          data = json.loads(Path('phase-manifest.json').read_text(encoding='utf-8'))
+          assert data['archives'][0]['phase'] == 1
+          assert data['archives'][0]['source']['type'] == 'builtin'
+          print('phase manifest validation PASS')
+          PY
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html README.md phase-manifest.json
+          git commit -m 'feat: drive Phase channels from manifest'
+          git push origin HEAD:main

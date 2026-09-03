@@ -1,0 +1,61 @@
+name: Temporary exact chevron
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: "${{ github.event.head_commit.message == 'chore: run temporary exact chevron' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Make system chevrons identical
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+
+          old = '.section-toggle .chevron{display:inline-block;font-size:15px;line-height:1;transition:transform .14s ease;transform:rotate(0deg)}.section-toggle[aria-expanded="true"] .chevron{transform:rotate(90deg)}'
+          new = '.chevron{display:inline-block;font-size:16px;font-weight:750;color:#8f8798;line-height:1}.section-toggle .chevron{transition:transform .14s ease;transform:rotate(0deg)}.section-toggle[aria-expanded="true"] .chevron{transform:rotate(90deg)}'
+          if text.count(old) != 1:
+              raise SystemExit(f'base chevron target count={text.count(old)}')
+          text = text.replace(old, new, 1)
+
+          old_override = '.section-toggle .chevron,.drawer-setting>span:last-child{font-size:16px;color:#8f8798;line-height:1}\n'
+          if text.count(old_override) != 1:
+              raise SystemExit(f'old override count={text.count(old_override)}')
+          text = text.replace(old_override, '', 1)
+
+          for button_id in ('settingsToggle', 'aboutRulesToggle'):
+              pattern = rf'(<button class="drawer-setting" id="{button_id}">.*?)(<span>›</span>)(</button>)'
+              text, n = re.subn(pattern, rf'\1<span class="chevron" aria-hidden="true">›</span>\3', text, count=1, flags=re.S)
+              if n != 1:
+                  raise SystemExit(f'{button_id} chevron target count={n}')
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          git diff --check
+          grep -F '.chevron{display:inline-block;font-size:16px;font-weight:750;color:#8f8798;line-height:1}' index.html
+          grep -F 'id="settingsToggle"' index.html | grep -F 'class="chevron"'
+          grep -F 'id="aboutRulesToggle"' index.html | grep -F 'class="chevron"'
+
+      - name: Commit change
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'style: make system chevrons identical'
+          git push origin HEAD:main

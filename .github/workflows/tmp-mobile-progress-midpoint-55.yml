@@ -1,0 +1,48 @@
+name: Temporary mobile progress midpoint 55
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: "${{ github.event.head_commit.message == 'chore: run temporary mobile progress midpoint 55' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set mobile progress midpoint to 55 percent
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+          target = '.drawer-progress-value{font-size:19px;font-weight:900}.drawer-section{'
+          replacement = '.drawer-progress-value{font-size:19px;font-weight:900}.drawer-progress .bar span{background-image:linear-gradient(90deg,#4b42ff 0%,#8d52ff 55%,#d96dff 100%)}.drawer-section{'
+          if text.count(target) != 1:
+              raise SystemExit(f'target count={text.count(target)}')
+          if '#8d52ff 55%' in text:
+              raise SystemExit('55% mobile override already present')
+          text = text.replace(target, replacement, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+          git diff --check
+          grep -F '.drawer-progress .bar span{background-image:linear-gradient(90deg,#4b42ff 0%,#8d52ff 55%,#d96dff 100%)}' index.html
+          grep -F '.bar span{display:block;height:100%;width:18%;background:linear-gradient(90deg,#4b42ff 0%,#8d52ff 50%,#d96dff 100%)' index.html
+      - name: Commit change and remove runner
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'style: tune mobile progress gradient'
+          git rm .github/workflows/tmp-mobile-progress-midpoint-55.yml
+          git commit -m 'chore: remove temporary mobile progress runner'
+          git push origin HEAD:main

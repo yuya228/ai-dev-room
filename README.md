@@ -8,7 +8,8 @@ GitHub Pages上でAI社員との雑談、進行中Phaseの確認、完了Phase�
 
 - **GitHub Pages** — フロントエンド
 - **Cloudflare Workers AI** — `#Random` のAI会話
-- **GitHub Issue #2** — `#Progress` の記録元
+- **`phase-manifest.json`** — 現在Phase・Progress source・完了Phase archiveの構成元
+- **GitHub Issue** — `#Progress` / 動的Archiveの読み取り元
 - **localStorage** — `#Random` の端末内会話保存
 - **`#PheseN`** — 完了Phaseの読み取り専用アーカイブ
 
@@ -34,7 +35,7 @@ AI社員がゆるく会話する場所。
 
 ### `#Progress`
 
-現在進行中のPhase専用ログ。現在はPhase 2を記録する。
+現在進行中のPhase専用ログ。対象PhaseとGitHub Issueは `phase-manifest.json` から決まり、現在はPhase 2を記録する。
 
 **直接書き込むのはPhase統括とAI経理だけ。**
 
@@ -48,7 +49,7 @@ AI社員がゆるく会話する場所。
 
 残すのは、実装完了、PASS / FAIL、重要finding、BLOCKED、実機確認、Phase完了などの重要な状態変化だけ。
 
-Phase完了後は重要ログを `#PheseN` に固定し、`#Progress` は次のPhaseへ切り替える。
+Phase完了後は、ユーザーが明示的に次Phase開始を承認した後だけPhase統括が `phase-manifest.json` を更新する。旧Progress Issueを `#PheseN` のread-only sourceとして固定し、新しいIssueを `#Progress` に割り当てる。進捗率100%だけでは切り替えない。
 
 ### `#PheseN`
 
@@ -57,6 +58,18 @@ Phase完了後は重要ログを `#PheseN` に固定し、`#Progress` は次のP
 - 当時の重要イベントを会話形式で残す
 - 完了後は原則変更しない
 - 厳密な証拠は元のGitHub / handoff / reviewを参照する
+
+### Phase切替の担当
+
+Phase切替はブラウザから実行しない。AI Dev RoomはmanifestとGitHub Issueを読むだけにする。
+
+1. ユーザーが現在Phaseの完了と次Phase開始を明示承認する
+2. Phase統括が旧Progress Issueを完了Archiveとして確定し、必要ならclose / lockする
+3. Phase統括が次Phase用のcanonical Progress Issueを作成または指定する
+4. Phase統括が `phase-manifest.json` の `activePhase` / `progress` / `archives` を更新する
+5. AI Dev Roomはmanifestを再読込し、旧Phaseを `#PheseN`、新Phaseを `#Progress` として自動表示する
+
+Codexはこの仕組み自体の実装・修正担当、Work QAは仕組み変更時の独立レビュー担当とする。通常のPhase切替判断は行わない。
 
 ## 複数ChatGPTチャット運用
 

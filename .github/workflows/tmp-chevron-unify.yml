@@ -1,0 +1,47 @@
+name: Temporary chevron unify
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: "${{ github.event.head_commit.message == 'chore: run temporary chevron unify' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Unify collapse chevrons
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+          marker = '</style>'
+          rule = '.section-toggle .chevron,.drawer-setting>span:last-child{font-size:16px;color:#8f8798;line-height:1}\n'
+          if text.count(marker) != 1:
+              raise SystemExit(f'style marker count={text.count(marker)}')
+          if rule.strip() in text:
+              raise SystemExit('chevron rule already present')
+          text = text.replace(marker, rule + marker, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          git diff --check
+          grep -F '.section-toggle .chevron,.drawer-setting>span:last-child{font-size:16px;color:#8f8798;line-height:1}' index.html
+
+      - name: Commit change
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'style: unify navigation chevrons'
+          git push origin HEAD:main

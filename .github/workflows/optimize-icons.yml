@@ -1,0 +1,59 @@
+name: Optimize app icons
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/optimize-icons.yml
+
+permissions:
+  contents: write
+
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Pillow
+        run: python -m pip install --disable-pip-version-check pillow
+      - name: Refresh latest main
+        run: |
+          git fetch origin main
+          git merge --ff-only origin/main
+      - name: Optimize each target size
+        run: |
+          python - <<'PY'
+          from PIL import Image, ImageFilter, ImageEnhance
+
+          src = Image.open('icon-512.png').convert('RGBA')
+          configs = {
+              'apple-touch-icon.png': dict(size=180, contrast=1.05, color=1.02, sharpness=1.14, unsharp=(1.1,185,2)),
+              'icon-180.png': dict(size=180, contrast=1.05, color=1.02, sharpness=1.14, unsharp=(1.1,185,2)),
+              'icon-192.png': dict(size=192, contrast=1.045, color=1.02, sharpness=1.12, unsharp=(1.05,170,2)),
+              'icon-512.png': dict(size=512, contrast=1.02, color=1.01, sharpness=1.06, unsharp=(0.9,120,1)),
+          }
+          for name, cfg in configs.items():
+              out = src.resize((cfg['size'], cfg['size']), Image.Resampling.LANCZOS)
+              out = ImageEnhance.Contrast(out).enhance(cfg['contrast'])
+              out = ImageEnhance.Color(out).enhance(cfg['color'])
+              out = ImageEnhance.Sharpness(out).enhance(cfg['sharpness'])
+              radius, percent, threshold = cfg['unsharp']
+              out = out.filter(ImageFilter.UnsharpMask(radius=radius, percent=percent, threshold=threshold))
+              out.save(name, format='PNG', optimize=True)
+          PY
+      - name: Commit optimized icons
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apple-touch-icon.png icon-180.png icon-192.png icon-512.png
+          if git diff --cached --quiet; then
+            echo 'No icon changes.'
+            exit 0
+          fi
+          git commit -m 'Optimize app icons by target size'
+          git push origin HEAD:main

@@ -1,0 +1,130 @@
+name: Temporary Progress pagination
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: "${{ github.event.head_commit.message == 'chore: run temporary Progress pagination patch' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch Progress pagination and previous-good cache
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+
+          def replace_once(old, new, label):
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly one target, found {count}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              "const PROGRESS_API='https://api.github.com/repos/yuya228/ai-dev-room/issues/2/comments?per_page=100';",
+              "const PROGRESS_API='https://api.github.com/repos/yuya228/ai-dev-room/issues/2/comments';",
+              'progress API base'
+          )
+
+          replace_once(
+              "progressLoading=false,lastProgressFetch=0",
+              "progressLoading=false,progressLoadingOlder=false,progressInitialized=false,progressNewestPage=1,progressOldestPage=1,progressHasOlder=false,progressOlderBuffer=[],progressSyncError='',lastProgressFetch=0",
+              'progress state'
+          )
+
+          replace_once(
+              "if(saved?.progressKnownId!=null)progressKnownId=String(saved.progressKnownId)",
+              "if(saved?.progressKnownId!=null)progressKnownId=String(saved.progressKnownId);if(Array.isArray(saved?.progressCache))rooms.progress.messages=saved.progressCache.slice(-100)",
+              'previous-good restore'
+          )
+
+          replace_once(
+              "customChannels:customChannelItems(),unreadCounts,progressKnownId}))",
+              "customChannels:customChannelItems(),unreadCounts,progressKnownId,progressCache:rooms.progress.messages.slice(-100)}))",
+              'previous-good persist'
+          )
+
+          replace_once(
+              "{actor,recordedBy,source,progress}]}",
+              "{actor,recordedBy,source,progress,commentId:String(c?.id||'')}]}",
+              'comment id metadata'
+          )
+
+          replace_once(
+              "note.textContent=progressLoading?'canonicalログを同期中…':'書き込み: Phase統括（3役代理） / AI経理 → Issue #2';",
+              "note.textContent=progressLoading?'canonicalログを同期中…':progressSyncError?'同期エラー · 前回正常データを表示中':'書き込み: Phase統括（3役代理） / AI経理 → Issue #2';",
+              'previous-good status'
+          )
+
+          replace_once(
+              "function syncFeedScrollState(){syncJumpBottom();if(isFeedAtBottom())markRead(current)}",
+              "function syncFeedScrollState(){syncJumpBottom();if(isFeedAtBottom())markRead(current);if(current==='progress'&&feed.scrollTop<=80)loadOlderProgress()}",
+              'top-scroll loader hook'
+          )
+
+          pattern = r"async function loadCanonicalProgress\(force=false\)\{.*?\}\nconst sleep="
+          replacement = r'''function progressUrl(page){return `${PROGRESS_API}?per_page=100&page=${Math.max(1,Math.floor(Number(page)||1))}`}
+function progressLastPage(link){for(const part of String(link||'').split(',')){if(!/rel="last"/.test(part))continue;const m=part.match(/[?&]page=(\d+)/);if(m)return Math.max(1,Number(m[1])||1)}return 1}
+async function fetchProgressPage(page){const res=await fetch(progressUrl(page),{headers:{Accept:'application/vnd.github+json'},cache:'no-store'});if(!res.ok)throw new Error(`GitHub HTTP ${res.status}`);const data=await res.json();return{data:Array.isArray(data)?data:[],link:res.headers.get('link')||''}}
+function progressMessageId(m){return String(m?.[4]?.commentId||'')}
+function mergeProgressComments(data,{prepend=false}={}){const parsed=(Array.isArray(data)?data:[]).map(parseCanonical),existing=new Set(rooms.progress.messages.map(progressMessageId).filter(Boolean)),fresh=parsed.filter(m=>{const id=progressMessageId(m);if(!id||existing.has(id))return false;existing.add(id);return true});if(prepend)rooms.progress.messages=[...fresh,...rooms.progress.messages];else{const byId=new Map(rooms.progress.messages.map((m,i)=>[progressMessageId(m),i]));for(const m of parsed){const id=progressMessageId(m);if(id&&byId.has(id))rooms.progress.messages[byId.get(id)]=m;else rooms.progress.messages.push(m)}}return fresh.length}
+function syncPhaseProgressFromMessages(){for(const m of rooms.progress.messages){const p=m?.[4]?.progress;if(m?.[4]?.actor==='Phase統括'&&Number.isFinite(p))phaseProgress=p}}
+function updateProgressKnown(data){const list=Array.isArray(data)?data:[],latestId=list.length?String(list[list.length-1]?.id||''):'';let added=0,knownChanged=false;if(latestId){if(!progressKnownId){progressKnownId=latestId;knownChanged=true}else if(latestId!==progressKnownId){const prevIndex=list.findIndex(c=>String(c?.id||'')===progressKnownId);added=prevIndex>=0?Math.max(0,list.length-prevIndex-1):0;progressKnownId=latestId;knownChanged=true}}return{added,knownChanged}}
+async function loadOlderProgress(){if(current!=='progress'||progressLoading||progressLoadingOlder||!progressInitialized||!progressHasOlder)return;progressLoadingOlder=true;const beforeHeight=feed.scrollHeight,beforeTop=feed.scrollTop;try{let data=[];if(progressOlderBuffer.length){data=progressOlderBuffer;progressOlderBuffer=[]}else if(progressOldestPage>1){const page=progressOldestPage-1,result=await fetchProgressPage(page);data=result.data;progressOldestPage=page}else{progressHasOlder=false;return}mergeProgressComments(data,{prepend:true});progressHasOlder=progressOlderBuffer.length>0||progressOldestPage>1;progressSyncError='';saveState();if(current==='progress'&&!settingsOpen){render(true);requestAnimationFrame(()=>{feed.scrollTop=beforeTop+(feed.scrollHeight-beforeHeight);syncJumpBottom()})}}catch(e){progressSyncError=e.message;console.warn('Older Progress load failed',e)}finally{progressLoadingOlder=false;syncComposer()}}
+async function loadCanonicalProgress(force=false){if(progressLoading)return;if(!force&&Date.now()-lastProgressFetch<30000&&progressInitialized)return;progressLoading=true;progressSyncError='';if(current==='progress'&&!settingsOpen)render(true);try{let activityData=[],added=0,knownChanged=false;if(!progressInitialized){const first=await fetchProgressPage(1),lastPage=progressLastPage(first.link);let latestData=[],oldestPage=lastPage;progressOlderBuffer=[];if(lastPage===1){latestData=first.data;oldestPage=1}else{const newest=await fetchProgressPage(lastPage);latestData=newest.data;if(newest.data.length<100){const prevPage=lastPage-1,prev=await fetchProgressPage(prevPage),pair=[...prev.data,...newest.data],keep=Math.min(100,pair.length);progressOlderBuffer=pair.slice(0,pair.length-keep);latestData=pair.slice(-keep);oldestPage=prevPage}}rooms.progress.messages=latestData.map(parseCanonical);progressNewestPage=lastPage;progressOldestPage=oldestPage;progressHasOlder=progressOlderBuffer.length>0||progressOldestPage>1;progressInitialized=true;activityData=latestData}else{let page=progressNewestPage,result=await fetchProgressPage(page),batch=[...result.data],pageData=result.data;for(let i=0;i<5&&pageData.length===100;i++){const next=await fetchProgressPage(page+1);if(!next.data.length)break;page++;pageData=next.data;batch.push(...pageData)}progressNewestPage=page;mergeProgressComments(batch);activityData=batch}({added,knownChanged}=updateProgressKnown(activityData));syncPhaseProgressFromMessages();if(added&&!isChannelVisibleAtBottom('progress'))unreadCounts.progress=(unreadCounts.progress||0)+added;if(knownChanged||added)renderChannelNav();lastProgressFetch=Date.now();saveState();syncProgressUI();updateSettingsMeta()}catch(e){progressSyncError=e.message;console.warn('Progress sync failed; keeping previous-good cache',e)}finally{progressLoading=false;if(current==='progress'&&!settingsOpen)render(true);else syncComposer();updateSettingsMeta()}}
+const sleep='''
+          text, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+          if count != 1:
+              raise SystemExit(f'loadCanonicalProgress replacement: expected 1, found {count}')
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          git diff --check
+
+      - name: Validate patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path('index.html').read_text(encoding='utf-8')
+          required = [
+              "const PROGRESS_API='https://api.github.com/repos/yuya228/ai-dev-room/issues/2/comments';",
+              "function loadOlderProgress()",
+              "progressCache:rooms.progress.messages.slice(-100)",
+              "if(current==='progress'&&feed.scrollTop<=80)loadOlderProgress()",
+              "keeping previous-good cache",
+          ]
+          for marker in required:
+              if marker not in text:
+                  raise SystemExit(f'missing marker: {marker}')
+          if "rooms.progress.messages=[['system',`canonical同期エラー:" in text:
+              raise SystemExit('destructive error replacement still present')
+          scripts = re.findall(r'<script[^>]*>(.*?)</script>', text, re.S | re.I)
+          Path('/tmp/app.js').write_text('\n'.join(scripts), encoding='utf-8')
+          PY
+          node --check /tmp/app.js
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'feat: paginate Progress history safely'
+          git push origin HEAD:main

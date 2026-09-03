@@ -1,0 +1,81 @@
+name: Temporary system icon polish
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: "${{ github.event.head_commit.message == 'chore: run temporary system icon polish' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Normalize system icons and privacy warning
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+
+          old = '.settings-label{display:flex;align-items:center;gap:9px}.settings-icon{width:16px;height:16px;flex:0 0 16px}'
+          new = '.settings-label{display:flex;align-items:center;gap:9px}.settings-icon{width:16px;height:16px;flex:0 0 16px;color:#a9a2b1;stroke-width:1.7}.settings-rule-row .danger-copy{color:var(--red)}'
+          if text.count(old) != 1:
+              raise SystemExit(f'settings icon CSS target count={text.count(old)}')
+          text = text.replace(old, new, 1)
+
+          sentence = 'GitHubに個人情報・認証情報・秘密情報を書き込まない。'
+          old_privacy = f'<span>{sentence}</span>'
+          new_privacy = f'<span class="danger-copy">{sentence}</span>'
+          if text.count(old_privacy) != 1:
+              raise SystemExit(f'privacy target count={text.count(old_privacy)}')
+          text = text.replace(old_privacy, new_privacy, 1)
+
+          # Keep both system navigation icons on the same explicit SVG stroke width.
+          text = text.replace('class="hash settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"', 'class="hash settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"')
+          text = text.replace('class="settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"', 'class="settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"')
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          git diff --check
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('index.html').read_text(encoding='utf-8')
+          required = [
+              '.settings-icon{width:16px;height:16px;flex:0 0 16px;color:#a9a2b1;stroke-width:1.7}',
+              '.settings-rule-row .danger-copy{color:var(--red)}',
+              '<span class="danger-copy">GitHubに個人情報・認証情報・秘密情報を書き込まない。</span>',
+          ]
+          for marker in required:
+              if text.count(marker) != 1:
+                  raise SystemExit(f'validation failed: {marker}')
+          PY
+
+      - name: Check inline JavaScript syntax
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path('index.html').read_text(encoding='utf-8')
+          scripts = re.findall(r'<script[^>]*>(.*?)</script>', text, re.S | re.I)
+          Path('/tmp/app.js').write_text('\n'.join(scripts), encoding='utf-8')
+          PY
+          node --check /tmp/app.js
+
+      - name: Commit change
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'style: unify system icons and privacy warning'
+          git push origin HEAD:main

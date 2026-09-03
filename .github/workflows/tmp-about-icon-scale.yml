@@ -1,0 +1,45 @@
+name: Temporary About icon scale
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: "${{ github.event.head_commit.message == 'chore: run temporary About icon scale' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Slightly enlarge About icon
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+          old = '.settings-icon{width:16px;height:16px;flex:0 0 16px;color:#a9a2b1;stroke-width:1.7}.settings-rule-row .danger-copy{color:var(--red)}'
+          new = '.settings-icon{width:16px;height:16px;flex:0 0 16px;color:#a9a2b1;stroke-width:1.7}#desktopAboutRules .settings-icon,#aboutRulesToggle .settings-icon{transform:scale(1.06);transform-origin:center}.settings-rule-row .danger-copy{color:var(--red)}'
+          if text.count(old) != 1:
+              raise SystemExit(f'icon CSS target count={text.count(old)}')
+          text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          git diff --check
+          grep -F '#desktopAboutRules .settings-icon,#aboutRulesToggle .settings-icon{transform:scale(1.06);transform-origin:center}' index.html
+
+      - name: Commit change
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'style: slightly enlarge About icon'
+          git push origin HEAD:main

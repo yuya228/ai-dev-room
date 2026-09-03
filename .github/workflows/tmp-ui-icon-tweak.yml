@@ -1,0 +1,76 @@
+name: Temporary UI icon tweak
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: "${{ github.event.head_commit.message == 'chore: run temporary UI icon tweak' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Refine close and chevron icons
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+
+          old_close = ".search-close{width:32px;height:32px;flex:0 0 32px;border:0;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer;font-size:18px}.search-close:hover{background:rgba(255,255,255,.05);color:#fff}"
+          new_close = ".search-close{position:relative;width:32px;height:32px;flex:0 0 32px;border:0;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer;font-size:0}.search-close::before,.search-close::after{content:\"\";position:absolute;top:50%;left:50%;width:14px;height:1.5px;border-radius:999px;background:currentColor;transform-origin:center}.search-close::before{transform:translate(-50%,-50%) rotate(45deg)}.search-close::after{transform:translate(-50%,-50%) rotate(-45deg)}.search-close:hover{background:rgba(255,255,255,.05);color:#fff}"
+          if text.count(old_close) != 1:
+              raise SystemExit(f'close target count={text.count(old_close)}')
+          text = text.replace(old_close, new_close, 1)
+
+          old_media = "@media(min-width:721px){.feed,.rightbar,.settings-scroll{"
+          new_media = "@media(min-width:721px){.section-toggle .chevron{font-size:18px}.feed,.rightbar,.settings-scroll{"
+          if text.count(old_media) != 1:
+              raise SystemExit(f'media target count={text.count(old_media)}')
+          text = text.replace(old_media, new_media, 1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          git diff --check
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('index.html').read_text(encoding='utf-8')
+          required = [
+              '.search-close::before,.search-close::after',
+              'width:14px;height:1.5px',
+              '@media(min-width:721px){.section-toggle .chevron{font-size:18px}',
+          ]
+          for marker in required:
+              if text.count(marker) != 1:
+                  raise SystemExit(f'validation failed: {marker}')
+          PY
+
+      - name: Check inline JavaScript syntax
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path('index.html').read_text(encoding='utf-8')
+          scripts = re.findall(r'<script[^>]*>(.*?)</script>', text, re.S | re.I)
+          Path('/tmp/app.js').write_text('\n'.join(scripts), encoding='utf-8')
+          PY
+          node --check /tmp/app.js
+
+      - name: Commit change
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'style: refine search close and section chevrons'
+          git push origin HEAD:main

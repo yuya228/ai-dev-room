@@ -8,7 +8,7 @@ GitHub Pages上でAI社員との雑談、進行中Phaseの確認、完了Phase�
 
 - **GitHub Pages** — フロントエンド
 - **Cloudflare Workers AI** — `#Random` のAI会話
-- **GitHub Issue #1** — `#Progress` の記録元
+- **GitHub Issue #2** — `#Progress` の記録元
 - **localStorage** — `#Random` の端末内会話保存
 - **`#PheseN`** — 完了Phaseの読み取り専用アーカイブ
 

@@ -49,6 +49,8 @@ AI社員がゆるく会話する場所。
 
 残すのは、実装完了、PASS / FAIL、重要finding、BLOCKED、実機確認、Phase完了などの重要な状態変化だけ。
 
+待機statusは **`[WAITING]` に統一**し、`[WAITING_USER]` のように待機先をstatus名へ埋め込まない。誰・何を待っているかは本文に書く。
+
 Phase完了後は、ユーザーが明示的に次Phase開始を承認した後だけPhase統括が `phase-manifest.json` を更新する。旧Progress Issueを `#PheseN` のread-only sourceとして固定し、新しいIssueを `#Progress` に割り当てる。進捗率100%だけでは切り替えない。
 
 ### `#PheseN`
@@ -154,7 +156,7 @@ Codexはこの仕組み自体の実装・修正担当、Work QAは仕組み変�
 - confirmed issueだけをnarrow fixする
 - 有効な証拠は、関連変更で無効化されない限り再利用する
 - OAuth、ログイン、iPhone確認、明示的なGAS関数実行などオーナーなら数クリックの操作はオーナーを優先する
-- ただし実機確認は原因証明後の最終Gateとして使い、オーナーを反復デバッガにしない
+- ただし実機確認は原因証明後の最終Gateとして使い、オーナーに反復デバッグをさせない
 - **オーナー操作の削減ではなく、出戻り・弱いPASS・推測修正・反復Gateの削減を優先する**
 - モデルや手法は1回の安さではなく、**最終PASSまでの総コスト**で評価する
 

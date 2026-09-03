@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   patch:
-    if: "${{ github.event.head_commit.message == 'fix: repair temporary custom Issue runner' }}"
+    if: "${{ github.event.head_commit.message == 'fix: rerun custom Issue patch helper' }}"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 0
 
       - name: Patch custom GitHub Issue channels
-        run: python .github/tmp-custom-github-issue-source.py
+        run: python .github/tmp-custom-github-issue-run.py
 
       - name: Validate patch
         shell: bash

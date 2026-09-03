@@ -1,0 +1,93 @@
+name: Temporary progress UI polish
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: "${{ github.event.head_commit.message == 'chore: run temporary progress UI polish' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Polish mobile progress and agent status
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+            (
+              '.bar{height:6px;border-radius:99px;background:#302b38;overflow:hidden}.bar span{display:block;height:100%;width:18%;background:linear-gradient(90deg,#7c5cff,#a764ff);transition:width .25s ease}',
+              '.bar{height:6px;border-radius:99px;background:#302b38;overflow:hidden}.bar span{display:block;height:100%;width:18%;background:linear-gradient(90deg,#5c46ff,#c06cff);background-repeat:no-repeat;background-position:left center;transition:width .25s ease,background-size .25s ease}'
+            ),
+            (
+              '.drawer-progress{padding:12px;margin:0 2px 12px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.03)}.drawer-progress-top{display:flex;align-items:end;justify-content:space-between;margin-bottom:9px}.drawer-progress-title{font-size:11px;color:var(--muted);font-weight:700}.drawer-progress-value{font-size:20px;font-weight:900}',
+              '.drawer-progress{padding:9px 12px 12px;margin:0 2px 12px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.03)}.drawer-progress-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}.drawer-progress-title{font-size:11px;color:var(--muted);font-weight:700}.drawer-progress-value{font-size:19px;font-weight:900}'
+            ),
+            (
+              '.agent-status{border:0;background:transparent;padding:0;font-size:9px;color:var(--muted)}.agent-status .dot{width:6px;height:6px;margin-right:5px}',
+              '.agent-status{border:0;background:transparent;padding:0;font-size:9px;color:#bcb5c4}.agent-status .dot{width:6px;height:6px;margin-right:5px}'
+            ),
+            (
+              "function syncProgressUI(){const v=clampProgress(phaseProgress),text=`${v}%`;for(const id of ['drawerProgressValue','desktopProgressValue']){const el=document.getElementById(id);if(el)el.textContent=text}for(const id of ['drawerProgressBar','desktopProgressBar']){const el=document.getElementById(id);if(el)el.style.width=text}}",
+              "function syncProgressUI(){const v=clampProgress(phaseProgress),text=`${v}%`;for(const id of ['drawerProgressValue','desktopProgressValue']){const el=document.getElementById(id);if(el)el.textContent=text}for(const id of ['drawerProgressBar','desktopProgressBar']){const el=document.getElementById(id);if(el){el.style.width=text;el.style.backgroundSize=v?`${10000/v}% 100%`:'100% 100%'}}}"
+            ),
+          ]
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'target count={count}: {old[:100]}')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          git diff --check
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('index.html').read_text(encoding='utf-8')
+          required = [
+              'background:linear-gradient(90deg,#5c46ff,#c06cff)',
+              '.drawer-progress{padding:9px 12px 12px',
+              '.drawer-progress-top{display:flex;align-items:center;',
+              '.drawer-progress-value{font-size:19px;',
+              '.agent-status{border:0;background:transparent;padding:0;font-size:9px;color:#bcb5c4}',
+              "el.style.backgroundSize=v?`${10000/v}% 100%`:'100% 100%'",
+          ]
+          for marker in required:
+              if marker not in text:
+                  raise SystemExit(f'missing {marker}')
+          PY
+
+      - name: Check inline JavaScript syntax
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path('index.html').read_text(encoding='utf-8')
+          scripts = re.findall(r'<script[^>]*>(.*?)</script>', text, re.S | re.I)
+          Path('/tmp/app.js').write_text('\n'.join(scripts), encoding='utf-8')
+          PY
+          node --check /tmp/app.js
+
+      - name: Commit change and remove runner
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/tmp-progress-ui-polish.yml
+          git add index.html
+          git commit -m 'style: polish progress card and status'
+          git push origin HEAD:main

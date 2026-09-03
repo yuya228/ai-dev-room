@@ -1,0 +1,58 @@
+name: Temporary add owner member
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tmp-add-owner-member.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add owner to member lists
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          desktop = '<div class="card" data-collapse-group="members"><div class="member"><div class="mini manager">PM</div>'
+          desktop_new = '<div class="card" data-collapse-group="members"><div class="member"><div class="mini owner">YU</div><div class="member-copy"><div class="member-name">あなた</div><div class="member-sub">オーナー / 役員</div></div><span class="state"></span></div><div class="member"><div class="mini manager">PM</div>'
+          mobile = '<div class="drawer-members" data-collapse-group="members"><div class="drawer-member"><div class="mini manager">PM</div>'
+          mobile_new = '<div class="drawer-members" data-collapse-group="members"><div class="drawer-member"><div class="mini owner">YU</div><div class="drawer-member-copy"><div class="drawer-member-name">あなた</div><div class="drawer-member-role">Owner / Executive</div></div><span class="state"></span></div><div class="drawer-member"><div class="mini manager">PM</div>'
+
+          if s.count(desktop) != 1:
+              raise SystemExit(f'expected one desktop member anchor, found {s.count(desktop)}')
+          if s.count(mobile) != 1:
+              raise SystemExit(f'expected one mobile member anchor, found {s.count(mobile)}')
+          if '<div class="member-name">あなた</div>' in s or '<div class="drawer-member-name">あなた</div>' in s:
+              raise SystemExit('owner member already present')
+
+          s = s.replace(desktop, desktop_new, 1).replace(mobile, mobile_new, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+          git diff --check
+          grep -F '<div class="member-name">あなた</div><div class="member-sub">オーナー / 役員</div>' index.html
+          grep -F '<div class="drawer-member-name">あなた</div><div class="drawer-member-role">Owner / Executive</div>' index.html
+
+      - name: Commit change and remove runner
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'ui: add owner to member lists'
+          git push origin HEAD:main
+          rm .github/workflows/tmp-add-owner-member.yml
+          git add .github/workflows/tmp-add-owner-member.yml
+          git commit -m 'chore: remove temporary owner member runner'
+          git push origin HEAD:main

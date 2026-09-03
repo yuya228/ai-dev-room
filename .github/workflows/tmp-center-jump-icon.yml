@@ -1,0 +1,50 @@
+name: Temporary center jump icon
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: "${{ github.event.head_commit.message == 'chore: run temporary center jump icon' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Center jump icon geometrically
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+          old = '.jump-bottom{position:absolute;right:18px;top:-46px;width:38px;height:38px;border:1px solid rgba(255,255,255,.12);border-radius:50%;background:#211e28;box-shadow:0 4px 14px rgba(0,0,0,.28);display:grid;place-items:center;opacity:0;transform:translateY(6px) scale(.96);pointer-events:none;transition:opacity .15s ease,transform .15s ease;z-index:5;cursor:pointer}.jump-bottom.visible{opacity:1;transform:none;pointer-events:auto}.jump-bottom svg{width:18px;height:18px}'
+          new = '.jump-bottom{position:absolute;right:18px;top:-46px;width:38px;height:38px;padding:0;border:1px solid rgba(255,255,255,.12);border-radius:50%;background:#211e28;box-shadow:0 4px 14px rgba(0,0,0,.28);opacity:0;transform:translateY(6px) scale(.96);pointer-events:none;transition:opacity .15s ease,transform .15s ease;z-index:5;cursor:pointer}.jump-bottom.visible{opacity:1;transform:none;pointer-events:auto}.jump-bottom svg{position:absolute;top:50%;left:50%;width:18px;height:18px;transform:translate(-50%,-50%)}'
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one target, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          git diff --check
+          git diff --exit-code --quiet -- index.html && { echo 'No change produced'; exit 1; } || true
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('index.html').read_text(encoding='utf-8')
+          required = ['.jump-bottom{position:absolute;right:18px;top:-46px;width:38px;height:38px;padding:0;', '.jump-bottom svg{position:absolute;top:50%;left:50%;width:18px;height:18px;transform:translate(-50%,-50%)}']
+          for item in required:
+              if text.count(item) != 1:
+                  raise SystemExit(f'validation failed for {item!r}: {text.count(item)}')
+          PY
+      - name: Commit fix
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'fix: center jump-to-bottom icon'
+          git push origin HEAD:main

@@ -10,20 +10,20 @@ permissions:
 
 jobs:
   patch:
-    if: "${{ github.event.head_commit.message == 'chore: run temporary Progress pagination patch' }}"
+    if: "${{ github.event.head_commit.message == 'fix: repair temporary Progress pagination runner' }}"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Patch Progress pagination and previous-good cache
         shell: bash
+        env:
+          REPLACEMENT_B64: ZnVuY3Rpb24gcHJvZ3Jlc3NVcmwocGFnZSl7cmV0dXJuIGAke1BST0dSRVNTX0FQSX0/cGVyX3BhZ2U9MTAwJnBhZ2U9JHtNYXRoLm1heCgxLE1hdGguZmxvb3IoTnVtYmVyKHBhZ2UpfHwxKSl9YH0KZnVuY3Rpb24gcHJvZ3Jlc3NMYXN0UGFnZShsaW5rKXtmb3IoY29uc3QgcGFydCBvZiBTdHJpbmcobGlua3x8JycpLnNwbGl0KCcsJykpe2lmKCEvcmVsPSJsYXN0Ii8udGVzdChwYXJ0KSljb250aW51ZTtjb25zdCBtPXBhcnQubWF0Y2goL1s/Jl1wYWdlPShcZCspLyk7aWYobSlyZXR1cm4gTWF0aC5tYXgoMSxOdW1iZXIobVsxXSl8fDEpfXJldHVybiAxfQphc3luYyBmdW5jdGlvbiBmZXRjaFByb2dyZXNzUGFnZShwYWdlKXtjb25zdCByZXM9YXdhaXQgZmV0Y2gocHJvZ3Jlc3NVcmwocGFnZSkse2hlYWRlcnM6e0FjY2VwdDonYXBwbGljYXRpb24vdm5kLmdpdGh1Yitqc29uJ30sY2FjaGU6J25vLXN0b3JlJ30pO2lmKCFyZXMub2spdGhyb3cgbmV3IEVycm9yKGBHaXRIdWIgSFRUUCAke3Jlcy5zdGF0dXN9YCk7Y29uc3QgZGF0YT1hd2FpdCByZXMuanNvbigpO3JldHVybntkYXRhOkFycmF5LmlzQXJyYXkoZGF0YSk/ZGF0YTpbXSxsaW5rOnJlcy5oZWFkZXJzLmdldCgnbGluaycpfHwnJ319CmZ1bmN0aW9uIHByb2dyZXNzTWVzc2FnZUlkKG0pe3JldHVybiBTdHJpbmcobT8uWzRdPy5jb21tZW50SWR8fCcnKX0KZnVuY3Rpb24gbWVyZ2VQcm9ncmVzc0NvbW1lbnRzKGRhdGEse3ByZXBlbmQ9ZmFsc2V9PXt9KXtjb25zdCBwYXJzZWQ9KEFycmF5LmlzQXJyYXkoZGF0YSk/ZGF0YTpbXSkubWFwKHBhcnNlQ2Fub25pY2FsKSxleGlzdGluZz1uZXcgU2V0KHJvb21zLnByb2dyZXNzLm1lc3NhZ2VzLm1hcChwcm9ncmVzc01lc3NhZ2VJZCkuZmlsdGVyKEJvb2xlYW4pKSxmcmVzaD1wYXJzZWQuZmlsdGVyKG09Pntjb25zdCBpZD1wcm9ncmVzc01lc3NhZ2VJZChtKTtpZighaWR8fGV4aXN0aW5nLmhhcyhpZCkpcmV0dXJuIGZhbHNlO2V4aXN0aW5nLmFkZChpZCk7cmV0dXJuIHRydWV9KTtpZihwcmVwZW5kKXJvb21zLnByb2dyZXNzLm1lc3NhZ2VzPVsuLi5mcmVzaCwuLi5yb29tcy5wcm9ncmVzcy5tZXNzYWdlc107ZWxzZXtjb25zdCBieUlkPW5ldyBNYXAocm9vbXMucHJvZ3Jlc3MubWVzc2FnZXMubWFwKChtLGkpPT5bcHJvZ3Jlc3NNZXNzYWdlSWQobSksaV0pKTtmb3IoY29uc3QgbSBvZiBwYXJzZWQpe2NvbnN0IGlkPXByb2dyZXNzTWVzc2FnZUlkKG0pO2lmKGlkJiZieUlkLmhhcyhpZCkpcm9vbXMucHJvZ3Jlc3MubWVzc2FnZXNbYnlJZC5nZXQoaWQpXT1tO2Vsc2Ugcm9vbXMucHJvZ3Jlc3MubWVzc2FnZXMucHVzaChtKX19cmV0dXJuIGZyZXNoLmxlbmd0aH0KZnVuY3Rpb24gc3luY1BoYXNlUHJvZ3Jlc3NGcm9tTWVzc2FnZXMoKXtmb3IoY29uc3QgbSBvZiByb29tcy5wcm9ncmVzcy5tZXNzYWdlcyl7Y29uc3QgcD1tPy5bNF0/LnByb2dyZXNzO2lmKG0/Lls0XT8uYWN0b3I9PT0nUGhhc2XntbHmi6wnJiZOdW1iZXIuaXNGaW5pdGUocCkpcGhhc2VQcm9ncmVzcz1wfX0KZnVuY3Rpb24gdXBkYXRlUHJvZ3Jlc3NLbm93bihkYXRhKXtjb25zdCBsaXN0PUFycmF5LmlzQXJyYXkoZGF0YSk/ZGF0YTpbXSxsYXRlc3RJZD1saXN0Lmxlbmd0aD9TdHJpbmcobGlzdFtsaXN0Lmxlbmd0aC0xXT8uaWR8fCcnKTonJztsZXQgYWRkZWQ9MCxrbm93bkNoYW5nZWQ9ZmFsc2U7aWYobGF0ZXN0SWQpe2lmKCFwcm9ncmVzc0tub3duSWQpe3Byb2dyZXNzS25vd25JZD1sYXRlc3RJZDtrbm93bkNoYW5nZWQ9dHJ1ZX1lbHNlIGlmKGxhdGVzdElkIT09cHJvZ3Jlc3NLbm93bklkKXtjb25zdCBwcmV2SW5kZXg9bGlzdC5maW5kSW5kZXgoYz0+U3RyaW5nKGM/LmlkfHwnJyk9PT1wcm9ncmVzc0tub3duSWQpO2FkZGVkPXByZXZJbmRleD49MD9NYXRoLm1heCgwLGxpc3QubGVuZ3RoLXByZXZJbmRleC0xKTowO3Byb2dyZXNzS25vd25JZD1sYXRlc3RJZDtrbm93bkNoYW5nZWQ9dHJ1ZX19cmV0dXJue2FkZGVkLGtub3duQ2hhbmdlZH19CmFzeW5jIGZ1bmN0aW9uIGxvYWRPbGRlclByb2dyZXNzKCl7aWYoY3VycmVudCE9PSdwcm9ncmVzcyd8fHByb2dyZXNzTG9hZGluZ3x8cHJvZ3Jlc3NMb2FkaW5nT2xkZXJ8fCFwcm9ncmVzc0luaXRpYWxpemVkfHwhcHJvZ3Jlc3NIYXNPbGRlcilyZXR1cm47cHJvZ3Jlc3NMb2FkaW5nT2xkZXI9dHJ1ZTtjb25zdCBiZWZvcmVIZWlnaHQ9ZmVlZC5zY3JvbGxIZWlnaHQsYmVmb3JlVG9wPWZlZWQuc2Nyb2xsVG9wO3RyeXtsZXQgZGF0YT1bXTtpZihwcm9ncmVzc09sZGVyQnVmZmVyLmxlbmd0aCl7ZGF0YT1wcm9ncmVzc09sZGVyQnVmZmVyO3Byb2dyZXNzT2xkZXJCdWZmZXI9W119ZWxzZSBpZihwcm9ncmVzc09sZGVzdFBhZ2U+MSl7Y29uc3QgcGFnZT1wcm9ncmVzc09sZGVzdFBhZ2UtMSxyZXN1bHQ9YXdhaXQgZmV0Y2hQcm9ncmVzc1BhZ2UocGFnZSk7ZGF0YT1yZXN1bHQuZGF0YTtwcm9ncmVzc09sZGVzdFBhZ2U9cGFnZX1lbHNle3Byb2dyZXNzSGFzT2xkZXI9ZmFsc2U7cmV0dXJufW1lcmdlUHJvZ3Jlc3NDb21tZW50cyhkYXRhLHtwcmVwZW5kOnRydWV9KTtwcm9ncmVzc0hhc09sZGVyPXByb2dyZXNzT2xkZXJCdWZmZXIubGVuZ3RoPjB8fHByb2dyZXNzT2xkZXN0UGFnZT4xO3Byb2dyZXNzU3luY0Vycm9yPScnO3NhdmVTdGF0ZSgpO2lmKGN1cnJlbnQ9PT0ncHJvZ3Jlc3MnJiYhc2V0dGluZ3NPcGVuKXtyZW5kZXIodHJ1ZSk7cmVxdWVzdEFuaW1hdGlvbkZyYW1lKCgpPT57ZmVlZC5zY3JvbGxUb3A9YmVmb3JlVG9wKyhmZWVkLnNjcm9sbEhlaWdodC1iZWZvcmVIZWlnaHQpO3N5bmNKdW1wQm90dG9tKCl9KX19Y2F0Y2goZSl7cHJvZ3Jlc3NTeW5jRXJyb3I9ZS5tZXNzYWdlO2NvbnNvbGUud2FybignT2xkZXIgUHJvZ3Jlc3MgbG9hZCBmYWlsZWQnLGUpfWZpbmFsbHl7cHJvZ3Jlc3NMb2FkaW5nT2xkZXI9ZmFsc2U7c3luY0NvbXBvc2VyKCl9fQphc3luYyBmdW5jdGlvbiBsb2FkQ2Fub25pY2FsUHJvZ3Jlc3MoZm9yY2U9ZmFsc2Upe2lmKHByb2dyZXNzTG9hZGluZylyZXR1cm47aWYoIWZvcmNlJiZEYXRlLm5vdygpLWxhc3RQcm9ncmVzc0ZldGNoPDMwMDAwJiZwcm9ncmVzc0luaXRpYWxpemVkKXJldHVybjtwcm9ncmVzc0xvYWRpbmc9dHJ1ZTtwcm9ncmVzc1N5bmNFcnJvcj0nJztpZihjdXJyZW50PT09J3Byb2dyZXNzJyYmIXNldHRpbmdzT3BlbilyZW5kZXIodHJ1ZSk7dHJ5e2xldCBhY3Rpdml0eURhdGE9W10sYWRkZWQ9MCxrbm93bkNoYW5nZWQ9ZmFsc2U7aWYoIXByb2dyZXNzSW5pdGlhbGl6ZWQpe2NvbnN0IGZpcnN0PWF3YWl0IGZldGNoUHJvZ3Jlc3NQYWdlKDEpLGxhc3RQYWdlPXByb2dyZXNzTGFzdFBhZ2UoZmlyc3QubGluayk7bGV0IGxhdGVzdERhdGE9W10sb2xkZXN0UGFnZT1sYXN0UGFnZTtwcm9ncmVzc09sZGVyQnVmZmVyPVtdO2lmKGxhc3RQYWdlPT09MSl7bGF0ZXN0RGF0YT1maXJzdC5kYXRhO29sZGVzdFBhZ2U9MX1lbHNle2NvbnN0IG5ld2VzdD1hd2FpdCBmZXRjaFByb2dyZXNzUGFnZShsYXN0UGFnZSk7bGF0ZXN0RGF0YT1uZXdlc3QuZGF0YTtpZihuZXdlc3QuZGF0YS5sZW5ndGg8MTAwKXtjb25zdCBwcmV2UGFnZT1sYXN0UGFnZS0xLHByZXY9YXdhaXQgZmV0Y2hQcm9ncmVzc1BhZ2UocHJldlBhZ2UpLHBhaXI9Wy4uLnByZXYuZGF0YSwuLi5uZXdlc3QuZGF0YV0sa2VlcD1NYXRoLm1pbigxMDAscGFpci5sZW5ndGgpO3Byb2dyZXNzT2xkZXJCdWZmZXI9cGFpci5zbGljZSgwLHBhaXIubGVuZ3RoLWtlZXApO2xhdGVzdERhdGE9cGFpci5zbGljZSgta2VlcCk7b2xkZXN0UGFnZT1wcmV2UGFnZX19cm9vbXMucHJvZ3Jlc3MubWVzc2FnZXM9bGF0ZXN0RGF0YS5tYXAocGFyc2VDYW5vbmljYWwpO3Byb2dyZXNzTmV3ZXN0UGFnZT1sYXN0UGFnZTtwcm9ncmVzc09sZGVzdFBhZ2U9b2xkZXN0UGFnZTtwcm9ncmVzc0hhc09sZGVyPXByb2dyZXNzT2xkZXJCdWZmZXIubGVuZ3RoPjB8fHByb2dyZXNzT2xkZXN0UGFnZT4xO3Byb2dyZXNzSW5pdGlhbGl6ZWQ9dHJ1ZTthY3Rpdml0eURhdGE9bGF0ZXN0RGF0YX1lbHNle2xldCBwYWdlPXByb2dyZXNzTmV3ZXN0UGFnZSxyZXN1bHQ9YXdhaXQgZmV0Y2hQcm9ncmVzc1BhZ2UocGFnZSksYmF0Y2g9Wy4uLnJlc3VsdC5kYXRhXSxwYWdlRGF0YT1yZXN1bHQuZGF0YTtmb3IobGV0IGk9MDtpPDUmJnBhZ2VEYXRhLmxlbmd0aD09PTEwMDtpKyspe2NvbnN0IG5leHQ9YXdhaXQgZmV0Y2hQcm9ncmVzc1BhZ2UocGFnZSsxKTtpZighbmV4dC5kYXRhLmxlbmd0aClicmVhaztwYWdlKys7cGFnZURhdGE9bmV4dC5kYXRhO2JhdGNoLnB1c2goLi4ucGFnZURhdGEpfXByb2dyZXNzTmV3ZXN0UGFnZT1wYWdlO21lcmdlUHJvZ3Jlc3NDb21tZW50cyhiYXRjaCk7YWN0aXZpdHlEYXRhPWJhdGNofSh7YWRkZWQsa25vd25DaGFuZ2VkfT11cGRhdGVQcm9ncmVzc0tub3duKGFjdGl2aXR5RGF0YSkpO3N5bmNQaGFzZVByb2dyZXNzRnJvbU1lc3NhZ2VzKCk7aWYoYWRkZWQmJiFpc0NoYW5uZWxWaXNpYmxlQXRCb3R0b20oJ3Byb2dyZXNzJykpdW5yZWFkQ291bnRzLnByb2dyZXNzPSh1bnJlYWRDb3VudHMucHJvZ3Jlc3N8fDApK2FkZGVkO2lmKGtub3duQ2hhbmdlZHx8YWRkZWQpcmVuZGVyQ2hhbm5lbE5hdigpO2xhc3RQcm9ncmVzc0ZldGNoPURhdGUubm93KCk7c2F2ZVN0YXRlKCk7c3luY1Byb2dyZXNzVUkoKTt1cGRhdGVTZXR0aW5nc01ldGEoKX1jYXRjaChlKXtwcm9ncmVzc1N5bmNFcnJvcj1lLm1lc3NhZ2U7Y29uc29sZS53YXJuKCdQcm9ncmVzcyBzeW5jIGZhaWxlZDsga2VlcGluZyBwcmV2aW91cy1nb29kIGNhY2hlJyxlKX1maW5hbGx5e3Byb2dyZXNzTG9hZGluZz1mYWxzZTtpZihjdXJyZW50PT09J3Byb2dyZXNzJyYmIXNldHRpbmdzT3BlbilyZW5kZXIodHJ1ZSk7ZWxzZSBzeW5jQ29tcG9zZXIoKTt1cGRhdGVTZXR0aW5nc01ldGEoKX19CmNvbnN0IHNsZWVwPQ==
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
-
+          import base64, os, re
           path = Path('index.html')
           text = path.read_text(encoding='utf-8')
 
@@ -34,68 +34,22 @@ jobs:
                   raise SystemExit(f'{label}: expected exactly one target, found {count}')
               text = text.replace(old, new, 1)
 
-          replace_once(
-              "const PROGRESS_API='https://api.github.com/repos/yuya228/ai-dev-room/issues/2/comments?per_page=100';",
-              "const PROGRESS_API='https://api.github.com/repos/yuya228/ai-dev-room/issues/2/comments';",
-              'progress API base'
-          )
+          replace_once("const PROGRESS_API='https://api.github.com/repos/yuya228/ai-dev-room/issues/2/comments?per_page=100';", "const PROGRESS_API='https://api.github.com/repos/yuya228/ai-dev-room/issues/2/comments';", 'progress API base')
+          replace_once("progressLoading=false,lastProgressFetch=0", "progressLoading=false,progressLoadingOlder=false,progressInitialized=false,progressNewestPage=1,progressOldestPage=1,progressHasOlder=false,progressOlderBuffer=[],progressSyncError='',lastProgressFetch=0", 'progress state')
+          replace_once("if(saved?.progressKnownId!=null)progressKnownId=String(saved.progressKnownId)", "if(saved?.progressKnownId!=null)progressKnownId=String(saved.progressKnownId);if(Array.isArray(saved?.progressCache))rooms.progress.messages=saved.progressCache.slice(-100)", 'previous-good restore')
+          replace_once("customChannels:customChannelItems(),unreadCounts,progressKnownId}))", "customChannels:customChannelItems(),unreadCounts,progressKnownId,progressCache:rooms.progress.messages.slice(-100)}))", 'previous-good persist')
+          replace_once("{actor,recordedBy,source,progress}]}", "{actor,recordedBy,source,progress,commentId:String(c?.id||'')}]}", 'comment id metadata')
+          replace_once("note.textContent=progressLoading?'canonicalログを同期中…':'書き込み: Phase統括（3役代理） / AI経理 → Issue #2';", "note.textContent=progressLoading?'canonicalログを同期中…':progressSyncError?'同期エラー · 前回正常データを表示中':'書き込み: Phase統括（3役代理） / AI経理 → Issue #2';", 'previous-good status')
+          replace_once("function syncFeedScrollState(){syncJumpBottom();if(isFeedAtBottom())markRead(current)}", "function syncFeedScrollState(){syncJumpBottom();if(isFeedAtBottom())markRead(current);if(current==='progress'&&feed.scrollTop<=80)loadOlderProgress()}", 'top-scroll loader hook')
 
-          replace_once(
-              "progressLoading=false,lastProgressFetch=0",
-              "progressLoading=false,progressLoadingOlder=false,progressInitialized=false,progressNewestPage=1,progressOldestPage=1,progressHasOlder=false,progressOlderBuffer=[],progressSyncError='',lastProgressFetch=0",
-              'progress state'
-          )
-
-          replace_once(
-              "if(saved?.progressKnownId!=null)progressKnownId=String(saved.progressKnownId)",
-              "if(saved?.progressKnownId!=null)progressKnownId=String(saved.progressKnownId);if(Array.isArray(saved?.progressCache))rooms.progress.messages=saved.progressCache.slice(-100)",
-              'previous-good restore'
-          )
-
-          replace_once(
-              "customChannels:customChannelItems(),unreadCounts,progressKnownId}))",
-              "customChannels:customChannelItems(),unreadCounts,progressKnownId,progressCache:rooms.progress.messages.slice(-100)}))",
-              'previous-good persist'
-          )
-
-          replace_once(
-              "{actor,recordedBy,source,progress}]}",
-              "{actor,recordedBy,source,progress,commentId:String(c?.id||'')}]}",
-              'comment id metadata'
-          )
-
-          replace_once(
-              "note.textContent=progressLoading?'canonicalログを同期中…':'書き込み: Phase統括（3役代理） / AI経理 → Issue #2';",
-              "note.textContent=progressLoading?'canonicalログを同期中…':progressSyncError?'同期エラー · 前回正常データを表示中':'書き込み: Phase統括（3役代理） / AI経理 → Issue #2';",
-              'previous-good status'
-          )
-
-          replace_once(
-              "function syncFeedScrollState(){syncJumpBottom();if(isFeedAtBottom())markRead(current)}",
-              "function syncFeedScrollState(){syncJumpBottom();if(isFeedAtBottom())markRead(current);if(current==='progress'&&feed.scrollTop<=80)loadOlderProgress()}",
-              'top-scroll loader hook'
-          )
-
+          replacement = base64.b64decode(os.environ['REPLACEMENT_B64']).decode('utf-8')
           pattern = r"async function loadCanonicalProgress\(force=false\)\{.*?\}\nconst sleep="
-          replacement = r'''function progressUrl(page){return `${PROGRESS_API}?per_page=100&page=${Math.max(1,Math.floor(Number(page)||1))}`}
-function progressLastPage(link){for(const part of String(link||'').split(',')){if(!/rel="last"/.test(part))continue;const m=part.match(/[?&]page=(\d+)/);if(m)return Math.max(1,Number(m[1])||1)}return 1}
-async function fetchProgressPage(page){const res=await fetch(progressUrl(page),{headers:{Accept:'application/vnd.github+json'},cache:'no-store'});if(!res.ok)throw new Error(`GitHub HTTP ${res.status}`);const data=await res.json();return{data:Array.isArray(data)?data:[],link:res.headers.get('link')||''}}
-function progressMessageId(m){return String(m?.[4]?.commentId||'')}
-function mergeProgressComments(data,{prepend=false}={}){const parsed=(Array.isArray(data)?data:[]).map(parseCanonical),existing=new Set(rooms.progress.messages.map(progressMessageId).filter(Boolean)),fresh=parsed.filter(m=>{const id=progressMessageId(m);if(!id||existing.has(id))return false;existing.add(id);return true});if(prepend)rooms.progress.messages=[...fresh,...rooms.progress.messages];else{const byId=new Map(rooms.progress.messages.map((m,i)=>[progressMessageId(m),i]));for(const m of parsed){const id=progressMessageId(m);if(id&&byId.has(id))rooms.progress.messages[byId.get(id)]=m;else rooms.progress.messages.push(m)}}return fresh.length}
-function syncPhaseProgressFromMessages(){for(const m of rooms.progress.messages){const p=m?.[4]?.progress;if(m?.[4]?.actor==='Phase統括'&&Number.isFinite(p))phaseProgress=p}}
-function updateProgressKnown(data){const list=Array.isArray(data)?data:[],latestId=list.length?String(list[list.length-1]?.id||''):'';let added=0,knownChanged=false;if(latestId){if(!progressKnownId){progressKnownId=latestId;knownChanged=true}else if(latestId!==progressKnownId){const prevIndex=list.findIndex(c=>String(c?.id||'')===progressKnownId);added=prevIndex>=0?Math.max(0,list.length-prevIndex-1):0;progressKnownId=latestId;knownChanged=true}}return{added,knownChanged}}
-async function loadOlderProgress(){if(current!=='progress'||progressLoading||progressLoadingOlder||!progressInitialized||!progressHasOlder)return;progressLoadingOlder=true;const beforeHeight=feed.scrollHeight,beforeTop=feed.scrollTop;try{let data=[];if(progressOlderBuffer.length){data=progressOlderBuffer;progressOlderBuffer=[]}else if(progressOldestPage>1){const page=progressOldestPage-1,result=await fetchProgressPage(page);data=result.data;progressOldestPage=page}else{progressHasOlder=false;return}mergeProgressComments(data,{prepend:true});progressHasOlder=progressOlderBuffer.length>0||progressOldestPage>1;progressSyncError='';saveState();if(current==='progress'&&!settingsOpen){render(true);requestAnimationFrame(()=>{feed.scrollTop=beforeTop+(feed.scrollHeight-beforeHeight);syncJumpBottom()})}}catch(e){progressSyncError=e.message;console.warn('Older Progress load failed',e)}finally{progressLoadingOlder=false;syncComposer()}}
-async function loadCanonicalProgress(force=false){if(progressLoading)return;if(!force&&Date.now()-lastProgressFetch<30000&&progressInitialized)return;progressLoading=true;progressSyncError='';if(current==='progress'&&!settingsOpen)render(true);try{let activityData=[],added=0,knownChanged=false;if(!progressInitialized){const first=await fetchProgressPage(1),lastPage=progressLastPage(first.link);let latestData=[],oldestPage=lastPage;progressOlderBuffer=[];if(lastPage===1){latestData=first.data;oldestPage=1}else{const newest=await fetchProgressPage(lastPage);latestData=newest.data;if(newest.data.length<100){const prevPage=lastPage-1,prev=await fetchProgressPage(prevPage),pair=[...prev.data,...newest.data],keep=Math.min(100,pair.length);progressOlderBuffer=pair.slice(0,pair.length-keep);latestData=pair.slice(-keep);oldestPage=prevPage}}rooms.progress.messages=latestData.map(parseCanonical);progressNewestPage=lastPage;progressOldestPage=oldestPage;progressHasOlder=progressOlderBuffer.length>0||progressOldestPage>1;progressInitialized=true;activityData=latestData}else{let page=progressNewestPage,result=await fetchProgressPage(page),batch=[...result.data],pageData=result.data;for(let i=0;i<5&&pageData.length===100;i++){const next=await fetchProgressPage(page+1);if(!next.data.length)break;page++;pageData=next.data;batch.push(...pageData)}progressNewestPage=page;mergeProgressComments(batch);activityData=batch}({added,knownChanged}=updateProgressKnown(activityData));syncPhaseProgressFromMessages();if(added&&!isChannelVisibleAtBottom('progress'))unreadCounts.progress=(unreadCounts.progress||0)+added;if(knownChanged||added)renderChannelNav();lastProgressFetch=Date.now();saveState();syncProgressUI();updateSettingsMeta()}catch(e){progressSyncError=e.message;console.warn('Progress sync failed; keeping previous-good cache',e)}finally{progressLoading=false;if(current==='progress'&&!settingsOpen)render(true);else syncComposer();updateSettingsMeta()}}
-const sleep='''
-          text, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+          text, count = re.subn(pattern, lambda _: replacement, text, count=1, flags=re.S)
           if count != 1:
               raise SystemExit(f'loadCanonicalProgress replacement: expected 1, found {count}')
-
           path.write_text(text, encoding='utf-8')
           PY
-
           git diff --check
-
       - name: Validate patch
         shell: bash
         run: |
@@ -119,7 +73,6 @@ const sleep='''
           Path('/tmp/app.js').write_text('\n'.join(scripts), encoding='utf-8')
           PY
           node --check /tmp/app.js
-
       - name: Commit patch
         shell: bash
         run: |

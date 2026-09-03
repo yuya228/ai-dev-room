@@ -1,0 +1,42 @@
+name: Temporary close icon alignment fix
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.event.head_commit.message == 'chore: run temporary close icon fix'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch close icon alignment
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+          old = '.drawer-close{width:34px;height:34px;border:0;border-radius:9px;background:rgba(255,255,255,.05);font-size:18px}'
+          new = '.drawer-close{width:34px;height:34px;border:0;border-radius:9px;background:rgba(255,255,255,.05);font-size:18px;display:grid;place-items:center;line-height:1;padding:0 0 3px}'
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one target, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          git diff --check
+          git diff --exit-code --quiet -- index.html && { echo 'No change produced'; exit 1; } || true
+      - name: Commit fix
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'fix: center drawer close icon'
+          git push origin HEAD:main

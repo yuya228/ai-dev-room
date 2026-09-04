@@ -10,7 +10,7 @@
   "archives": [
     {
       "phase": 1,
-      "name": "Phese1",
+      "name": "Phase1",
       "desc": "Phase 1 完了ログ",
       "status": "PASS",
       "source": {
@@ -19,7 +19,7 @@
     },
     {
       "phase": 2,
-      "name": "Phese2",
+      "name": "Phase2",
       "desc": "Phase 2 完了ログ",
       "status": "PASS",
       "source": {

@@ -1,0 +1,52 @@
+name: Temporary desktop progress top gap
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tmp-desktop-progress-top-gap.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Tighten desktop progress top spacing only
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          old = '.rightbar .metric>span{font-size:13px}.progress-percent{'
+          new = '.rightbar .metric>span{font-size:13px}.rightbar .metric{margin:3px 0 8px}.progress-percent{'
+          count = s.count(old)
+          if count != 1:
+              raise SystemExit(f'expected target exactly once, found {count}')
+          if '.rightbar .metric{margin:3px 0 8px}' in s:
+              raise SystemExit('desktop metric spacing override already exists')
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+          git diff --check
+          grep -F '.rightbar .metric{margin:3px 0 8px}' index.html
+          grep -F '.metric{display:flex;justify-content:space-between;font-size:10px;margin:8px 0}' index.html
+
+      - name: Commit change and remove runner
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'ui: tighten desktop progress top spacing'
+          git push origin main
+          rm .github/workflows/tmp-desktop-progress-top-gap.yml
+          git add .github/workflows/tmp-desktop-progress-top-gap.yml
+          git commit -m 'chore: remove temporary desktop progress spacing runner'
+          git push origin main

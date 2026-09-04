@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "activePhase": 2,
+  "activePhase": 3,
   "progress": {
     "source": {
       "type": "github_issue",
-      "url": "https://github.com/yuya228/ai-dev-room/issues/2"
+      "url": "https://github.com/yuya228/ai-dev-room/issues/3"
     }
   },
   "archives": [
@@ -15,6 +15,17 @@
       "status": "PASS",
       "source": {
         "type": "builtin"
+      }
+    },
+    {
+      "phase": 2,
+      "name": "Phese2",
+      "desc": "Phase 2 完了ログ",
+      "status": "PASS",
+      "source": {
+        "type": "github_issue",
+        "url": "https://github.com/yuya228/ai-dev-room/issues/2",
+        "format": "progress"
       }
     }
   ],

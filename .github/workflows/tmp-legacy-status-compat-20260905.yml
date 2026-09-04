@@ -1,12 +1,16 @@
 name: Temporary legacy status compatibility patch
+
 on:
   push:
     branches: [main]
+    paths:
+      - '.github/workflows/tmp-legacy-status-compat-20260905.yml'
+
 permissions:
   contents: write
+
 jobs:
   patch:
-    if: github.event.head_commit.message == 'chore: run temporary legacy status compat patch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,21 +26,42 @@ jobs:
           import re
           text=Path('index.html').read_text(encoding='utf-8')
           assert "LEGACY_STATUS_CUTOFF='2026-09-05 01:38 JST'" in text
-          assert 'function legacyStatusFromTags' in text
-          assert 'function normalizeCanonicalStatus' in text
+          assert text.count('function legacyStatusFromTags') == 1
+          assert text.count('function normalizeCanonicalStatus') == 1
           assert "actor==='AI経理'&&s==='LOG'" in text
           assert "if(s==='DONE')return'PASS'" in text
           assert "if(s==='IN_PROGRESS')return'START'" in text
           assert "status=normalizeCanonicalStatus(header?.[3]||'LOG',actor,header?.[1])" in text
-          scripts=re.findall(r'<script[^>]*>([\s\S]*?)</script>',text,re.I)
+          official=['START','NEXT','PASS','FAIL','FIX','BLOCKED','WAITING','CLOSED','COST']
+          def legacy_tags(tags):
+              for raw in tags:
+                  s=raw.strip().upper()
+                  if s in official: return s
+              priority=['CLOSED','BLOCKED','FAIL','FIX','WAITING','PASS','START','NEXT','COST']
+              for wanted in priority:
+                  for raw in tags:
+                      words=re.split(r'[^A-Z0-9]+',raw.strip().upper())
+                      if wanted in words: return wanted
+              return 'LOG'
+          assert legacy_tags(['PHASE 1','START']) == 'START'
+          assert legacy_tags(['LOCAL PASS','GATE PENDING']) == 'PASS'
+          assert legacy_tags(['M-06 FIX']) == 'FIX'
+          assert legacy_tags(['M-06 CLOSED','H/M 0/0']) == 'CLOSED'
+          assert legacy_tags(['IMPLEMENTED']) == 'LOG'
+          scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',text,re.S|re.I)
           assert scripts
-          Path('/tmp/app.js').write_text('\n'.join(scripts),encoding='utf-8')
+          Path('/tmp/aidevroom-inline.js').write_text('\n'.join(scripts),encoding='utf-8')
+          print('Legacy status compatibility static validation PASS')
           PY
-          node --check /tmp/app.js
+          node --check /tmp/aidevroom-inline.js
       - name: Commit patch
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git commit -m 'fix: preserve legacy Phase status meaning' || exit 0
-          git push
+          if git diff --cached --quiet; then
+            echo 'No index.html changes to commit'
+            exit 1
+          fi
+          git commit -m 'fix: preserve legacy Phase status meaning'
+          git push origin HEAD:main

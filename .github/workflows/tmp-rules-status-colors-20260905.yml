@@ -1,0 +1,49 @@
+name: Temporary rules status color fix
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tmp-rules-status-colors-20260905.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Preserve message tag colors in About Rules
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          old='.settings-rule-row span{display:block;font-size:11px;line-height:1.65;color:var(--muted);margin-top:4px}'
+          new='.settings-rule-row>span{display:block;font-size:11px;line-height:1.65;color:var(--muted);margin-top:4px}'
+          if s.count(old)!=1:
+              raise SystemExit(f'target count={s.count(old)}')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          PY
+      - name: Validate
+        run: |
+          git diff --check
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('index.html').read_text(encoding='utf-8')
+          assert '.settings-rule-row>span{display:block;font-size:11px;line-height:1.65;color:var(--muted);margin-top:4px}' in s
+          assert '.settings-rule-row span{display:block;font-size:11px;line-height:1.65;color:var(--muted);margin-top:4px}' not in s
+          for cls in ['done','review','blocked','cost']:
+              assert f'class="tag {cls}"' in s
+          scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',s,re.S|re.I)
+          Path('/tmp/aidevroom-inline.js').write_text('\n'.join(scripts),encoding='utf-8')
+          PY
+          node --check /tmp/aidevroom-inline.js
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'fix: match Rules status colors to messages'
+          git push origin HEAD:main

@@ -1,0 +1,49 @@
+name: Temporary Status guide icon patch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tmp-status-guide-icons.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch status guide icons
+        run: python .github/tmp-status-guide-icons.py
+      - name: Validate patch
+        run: |
+          git diff --check
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          text=Path('index.html').read_text(encoding='utf-8')
+          class P(HTMLParser):
+              pass
+          P().feed(text)
+          assert text.count('class="status-guide-grid"') == 1
+          for status in ['start','next','pass','fail','fix','blocked','waiting','closed','cost']:
+              marker=f'status-guide-card {status}'
+              assert text.count(marker) == 1, (marker,text.count(marker))
+          for label in ['START','NEXT','PASS','FAIL','FIX','BLOCKED','WAITING','CLOSED','COST']:
+              assert text.count(f'<strong>{label}</strong>') == 1
+          print('status guide icon UI validation PASS')
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          if git diff --cached --quiet; then
+            echo 'No index.html changes to commit'
+            exit 1
+          fi
+          git commit -m 'style: make Issue status guide icon based'
+          git push origin HEAD:main

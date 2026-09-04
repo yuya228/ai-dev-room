@@ -39,17 +39,43 @@ AI社員がゆるく会話する場所。
 
 **直接書き込むのはPhase統括とAI経理だけ。**
 
-- **Phase統括** — 判断・進捗を記録し、Codexの実装結果とWorkのレビュー結果を代理投稿する。`progress: xx%` も管理する
+- **Phase統括** — 判断・進捗を記録し、Codexの実装結果とWorkのレビュー結果を代理投稿する。`progress: xx%` の決定・更新もPhase統括だけが行う
 - **AI経理** — クレジット、所要時間、利用上限、オーナー介入、差し戻し、コスト評価を本人が記録する
 - **Codex / Work** — `#Progress` へ直接書かない
 
-投稿前に直近ログを確認し、同じ出来事でも役割を分けて重複させない。他担当の記録は編集しない。
+代理投稿でも `actor` は「実際に投稿した人」ではなく、**その状態の主体**で決める。Codexの結果は `actor: Codex A`、Workの結果は `actor: Work QA` としてPhase統括が代理投稿する。
+
+正式STATUSは次の9種。その他のstatusはLOGとして表示する。
+
+- **`START`** — 対象作業を開始
+- **`FIX`** — confirmed findingへの修正完了
+- **`PASS`** — 担当工程が成功
+- **`FAIL`** — 検証・レビュー失敗
+- **`NEXT`** — Phase統括が次の作業・進行先を決定。必要ならここで進捗率を更新
+- **`CLOSED`** — 対象の完了条件を満たして終了
+- **`BLOCKED`** — 問題があり先へ進めない
+- **`WAITING`** — OAuth、実機確認、外部応答、利用上限解除など、本当に何かを待って作業が停止中
+- **`COST`** — AI経理によるクレジット・時間・コスト記録
+
+役割ごとの基本STATUS:
+
+- **Codex A / B / ...** — `START / FIX / PASS / BLOCKED`
+- **Work QA** — `PASS / FAIL`
+- **Phase統括** — `NEXT / CLOSED / BLOCKED`
+- **AI経理** — `COST`
+- `WAITING` は役割共通の例外statusとし、単なる「次工程待ち」には使わない
+
+STATUSは今の工程の状態・結果を表し、次工程は本文の最後に **「次は〜」** と短く書く。通常の工程移行を `WAITING` で表現しない。
+
+`progress: xx%` はPhase統括だけが決定・更新する。Codex / Workの代理投稿には入れない。進捗率を変えないなら、進捗率のためだけのPhase統括コメントは不要。
+
+同じ出来事で `FIX → WAITING` のように複数statusを連投せず、その時点で最も意味のある状態を1件だけ残す。
+
+投稿前に直近ログを確認し、同じ出来事を重複記録しない。他担当の記録は編集しない。
 
 本文は短い会話にする。細かい証拠、hash、生ログ、長い説明は各Issue / handoff / reviewへ残す。
 
 残すのは、実装完了、PASS / FAIL、重要finding、BLOCKED、実機確認、Phase完了などの重要な状態変化だけ。
-
-待機statusは **`[WAITING]` に統一**し、`[WAITING_USER]` のように待機先をstatus名へ埋め込まない。誰・何を待っているかは本文に書く。
 
 Phase完了後は、ユーザーが明示的に次Phase開始を承認した後だけPhase統括が `phase-manifest.json` を更新する。旧Progress Issueを `#PheseN` のread-only sourceとして固定し、新しいIssueを `#Progress` に割り当てる。進捗率100%だけでは切り替えない。
 
@@ -123,7 +149,7 @@ Codexはこの仕組み自体の実装・修正担当、Work QAは仕組み変�
 - 実機FAILのたびにオーナーへ「もう一度試して」と繰り返す
 - 実機lifecycleを再現していないbrowser testのPASSだけで再確認へ進む
 
-実機FAIL後は、Phase統括がFAILを記録してオーナー側の再試行を止め、fixture / evidenceを安全に保持したままCodexの原因証明へ戻す。
+実機FAIL後は、Phase統括が`[BLOCKED]`として状況を記録してオーナー側の再試行を止め、fixture / evidenceを安全に保持したままCodexの原因証明へ戻す。
 
 実機でしか取れない情報がある場合は、複数の明示的な仮説を切り分けるための**1回の最小診断操作**だけオーナーへ依頼してよい。自由探索や試行錯誤は依頼しない。
 

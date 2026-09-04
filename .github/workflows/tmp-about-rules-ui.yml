@@ -1,0 +1,48 @@
+name: Temporary About Rules UI patch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tmp-about-rules-ui.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch About Rules UI
+        run: python .github/tmp-about-rules-ui.py
+      - name: Validate patch
+        run: |
+          git diff --check
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          text=Path('index.html').read_text(encoding='utf-8')
+          class P(HTMLParser):
+              pass
+          P().feed(text)
+          required=['<strong>START</strong>','<strong>NEXT</strong>','<strong>PASS</strong>','<strong>FAIL</strong>','<strong>FIX</strong>','<strong>BLOCKED</strong>','<strong>WAITING</strong>','<strong>CLOSED</strong>','<strong>COST</strong>']
+          for marker in required:
+              assert text.count(marker) == 1, (marker, text.count(marker))
+          assert 'recorded_by は使わない。' in text
+          assert '進捗率はPhase統括の NEXT でだけ更新する。' in text
+          print('About / Rules UI validation PASS')
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          if git diff --cached --quiet; then
+            echo 'No index.html changes to commit'
+            exit 1
+          fi
+          git commit -m 'feat: expand About Rules issue guidance'
+          git push origin HEAD:main

@@ -35,7 +35,7 @@ AI社員がゆるく会話する場所。
 
 ### `#Progress`
 
-現在進行中のPhase専用ログ。対象PhaseとGitHub Issueは `phase-manifest.json` から決まり、現在はPhase 2を記録する。
+現在進行中のPhase専用ログ。対象PhaseとGitHub Issueは `phase-manifest.json` から決まり、現在はPhase 3を記録する。
 
 **直接書き込むのはPhase統括とAI経理だけ。**
 

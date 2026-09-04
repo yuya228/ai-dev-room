@@ -1,0 +1,120 @@
+name: Temporary Activity chart patch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tmp-activity-chart.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add manifest-driven Activity chart
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          s = path.read_text()
+
+          if 'id="activityChart"' in s or 'function loadActivity(' in s:
+              raise SystemExit('Activity UI already exists; refusing duplicate patch')
+
+          css_anchor = '.bar span{display:block;height:100%;width:18%;background:linear-gradient(90deg,#4b42ff 0%,#8d52ff 50%,#d96dff 100%);background-repeat:no-repeat;background-position:left center;transition:width .25s ease,background-size .25s ease}\n.drawer,.drawer-backdrop{display:none}'
+          activity_css = '''.activity-title{display:flex;align-items:center;justify-content:space-between}.activity-meta{font-size:9px;font-weight:650;color:#8f8798}.activity-card{padding:11px 10px 9px}.activity-chart{height:84px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;align-items:end}.activity-day{min-width:0;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px}.activity-bar-wrap{width:100%;height:60px;display:flex;align-items:flex-end;justify-content:center;border-bottom:1px solid rgba(255,255,255,.06)}.activity-bar{display:block;width:14px;max-width:72%;min-height:3px;border-radius:4px 4px 2px 2px;background:linear-gradient(180deg,#d96dff 0%,#8d52ff 52%,#4b42ff 100%);box-shadow:0 0 10px rgba(124,92,255,.12);transition:height .22s ease}.activity-bar.empty{height:3px!important;background:#393440;box-shadow:none}.activity-label{font-size:8px;line-height:1;color:#817989;white-space:nowrap;font-variant-numeric:tabular-nums}'''
+          if s.count(css_anchor) != 1:
+              raise SystemExit(f'CSS anchor count != 1: {s.count(css_anchor)}')
+          s = s.replace(css_anchor, css_anchor.split('\n')[0] + '\n' + activity_css + '\n.drawer,.drawer-backdrop{display:none}')
+
+          html_anchor = '</div></aside>\n</div>\n<div class="drawer-backdrop" id="drawerBackdrop"></div>'
+          activity_html = '<div class="right-title activity-title"><span>Activity</span><span class="activity-meta" id="activityMeta">7 days</span></div><div class="card activity-card"><div class="activity-chart" id="activityChart" role="img" aria-label="直近7日のActivity"></div></div>'
+          if s.count(html_anchor) != 1:
+              raise SystemExit(f'rightbar anchor count != 1: {s.count(html_anchor)}')
+          s = s.replace(html_anchor, '</div>' + activity_html + '</aside>\n</div>\n<div class="drawer-backdrop" id="drawerBackdrop"></div>')
+
+          state_anchor = "collapsedSections={channels:false,members:false},searchQuery='',searchOpen=false;\n"
+          state_line = "let activityLoading=false,lastActivityFetch=0,activityArchiveCounts={},activityCurrentCounts={},activityArchiveSignature='',activityCurrentSource='',activitySyncError='';\n"
+          if s.count(state_anchor) != 1:
+              raise SystemExit(f'state anchor count != 1: {s.count(state_anchor)}')
+          s = s.replace(state_anchor, state_anchor + state_line)
+
+          func_anchor = "function issueCommentsApi(info){return `https://api.github.com/repos/${encodeURIComponent(info.owner)}/${encodeURIComponent(info.repo)}/issues/${info.issue}/comments`}\nfunction roomHasGitHubIssueSource"
+          activity_js = r'''function activityJstDayKey(value){const d=value instanceof Date?value:new Date(value);if(Number.isNaN(d.getTime()))return'';const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d),get=t=>parts.find(p=>p.type===t)?.value||'';return`${get('year')}-${get('month')}-${get('day')}`}
+function activityWindow(){const out=[];for(let i=6;i>=0;i--){const key=activityJstDayKey(new Date(Date.now()-i*86400000)),p=key.split('-');out.push({key,label:`${Number(p[1])}/${Number(p[2])}`})}return out}
+function activityEmptyCounts(){return Object.fromEntries(activityWindow().map(d=>[d.key,0]))}
+function activityCommentDay(c){const m=String(c?.body||'').match(/^\[(\d{4})-(\d{2})-(\d{2})\s+\d{2}:\d{2}\s+JST\]/);return m?`${m[1]}-${m[2]}-${m[3]}`:activityJstDayKey(c?.created_at)}
+function activityAddComments(counts,comments){for(const c of Array.isArray(comments)?comments:[]){const key=activityCommentDay(c);if(Object.prototype.hasOwnProperty.call(counts,key))counts[key]++}return counts}
+function activityManifestSources(){const m=normalizePhaseManifest(phaseManifestCache);if(!m)return{archives:[],current:progressIssueUrl};const current=m.progress?.source?.type==='github_issue'?m.progress.source.url:'',archives=m.archives.filter(a=>a.source?.type==='github_issue').map(a=>a.source.url).filter(u=>u&&u!==current);return{archives:[...new Set(archives)],current}}
+function renderActivity(){const chart=document.getElementById('activityChart'),meta=document.getElementById('activityMeta');if(!chart||!meta)return;const days=activityWindow(),values=days.map(d=>(activityArchiveCounts[d.key]||0)+(activityCurrentCounts[d.key]||0)),max=Math.max(1,...values),total=values.reduce((a,b)=>a+b,0);meta.textContent=activityLoading&&!lastActivityFetch&&!activityArchiveSignature?'同期中…':activitySyncError&&!lastActivityFetch&&!activityArchiveSignature?'同期エラー':`7 days · ${total}`;chart.setAttribute('aria-label',days.map((d,i)=>`${d.label} ${values[i]}件`).join('、'));chart.innerHTML=days.map((d,i)=>{const n=values[i],h=n?Math.max(10,Math.round(n/max*100)):3;return`<div class="activity-day" title="${d.label} · ${n} events"><div class="activity-bar-wrap"><span class="activity-bar${n?'':' empty'}" style="height:${h}%"></span></div><span class="activity-label">${d.label}</span></div>`}).join('')}
+async function fetchActivityComments(sourceUrl,cutoff){const info=parseGitHubIssueUrl(sourceUrl);if(!info)return[];const out=[];for(let page=1;page<=10;page++){const url=`${issueCommentsApi(info)}?per_page=100&page=${page}&since=${encodeURIComponent(cutoff)}`,res=await fetch(url,{headers:{Accept:'application/vnd.github+json'},cache:'no-store'});if(!res.ok)throw new Error(`Activity GitHub HTTP ${res.status}`);const data=await res.json();if(!Array.isArray(data))break;out.push(...data);if(data.length<100)return out;if(page===10)throw new Error('Activity pagination limit exceeded')}return out}
+async function loadActivity(force=false){if(window.matchMedia('(max-width:980px)').matches||activityLoading)return;const src=activityManifestSources(),archiveSignature=src.archives.join('|'),needArchives=force||archiveSignature!==activityArchiveSignature,needCurrent=force||src.current!==activityCurrentSource||Date.now()-lastActivityFetch>=300000;if(!needArchives&&!needCurrent){renderActivity();return}activityLoading=true;activitySyncError='';renderActivity();try{const cutoff=new Date(Date.now()-8*86400000).toISOString();let nextArchives=activityArchiveCounts,nextCurrent=activityCurrentCounts;if(needArchives){nextArchives=activityEmptyCounts();for(const url of src.archives)activityAddComments(nextArchives,await fetchActivityComments(url,cutoff))}if(needCurrent){nextCurrent=activityEmptyCounts();if(src.current)activityAddComments(nextCurrent,await fetchActivityComments(src.current,cutoff))}activityArchiveCounts=nextArchives;activityCurrentCounts=nextCurrent;if(needArchives)activityArchiveSignature=archiveSignature;if(needCurrent){activityCurrentSource=src.current;lastActivityFetch=Date.now()}}catch(e){activitySyncError=e.message;console.warn('Activity sync failed; keeping previous-good data',e)}finally{activityLoading=false;renderActivity()}}
+'''
+          if s.count(func_anchor) != 1:
+              raise SystemExit(f'function anchor count != 1: {s.count(func_anchor)}')
+          s = s.replace(func_anchor, "function issueCommentsApi(info){return `https://api.github.com/repos/${encodeURIComponent(info.owner)}/${encodeURIComponent(info.repo)}/issues/${info.issue}/comments`}\n" + activity_js + "function roomHasGitHubIssueSource")
+
+          settings_old = "document.getElementById('settingsSync').addEventListener('click',async()=>{await loadPhaseManifest();await loadCanonicalProgress(true);if(roomHasGitHubIssueSource(rooms[current]))await loadCustomIssueChannel(current,true)});"
+          settings_new = "document.getElementById('settingsSync').addEventListener('click',async()=>{await loadPhaseManifest();await loadCanonicalProgress(true);await loadActivity(true);if(roomHasGitHubIssueSource(rooms[current]))await loadCustomIssueChannel(current,true)});"
+          if s.count(settings_old) != 1:
+              raise SystemExit(f'settings sync anchor count != 1: {s.count(settings_old)}')
+          s = s.replace(settings_old, settings_new)
+
+          resize_old = "window.addEventListener('resize',()=>syncAppHeight(false));"
+          resize_new = "window.addEventListener('resize',()=>{syncAppHeight(false);if(window.innerWidth>980)loadActivity(false)});"
+          if s.count(resize_old) != 1:
+              raise SystemExit(f'resize anchor count != 1: {s.count(resize_old)}')
+          s = s.replace(resize_old, resize_new)
+
+          interval_old = "setInterval(async()=>{await loadPhaseManifest();await loadCanonicalProgress(true);if(roomHasGitHubIssueSource(rooms[current]))await loadCustomIssueChannel(current,true)},300000);"
+          interval_new = "setInterval(async()=>{await loadPhaseManifest();await loadCanonicalProgress(true);await loadActivity(false);if(roomHasGitHubIssueSource(rooms[current]))await loadCustomIssueChannel(current,true)},300000);"
+          if s.count(interval_old) != 1:
+              raise SystemExit(f'interval anchor count != 1: {s.count(interval_old)}')
+          s = s.replace(interval_old, interval_new)
+
+          boot_old = "async function boot(){syncAppHeight(true);await loadPhaseManifest();render();if(current==='progress')await loadCanonicalProgress(false);else if(roomHasGitHubIssueSource(rooms[current]))await loadCustomIssueChannel(current,false);scrollFeedToLatest()}boot();"
+          boot_new = "async function boot(){syncAppHeight(true);await loadPhaseManifest();render();if(current==='progress')await loadCanonicalProgress(false);else if(roomHasGitHubIssueSource(rooms[current]))await loadCustomIssueChannel(current,false);await loadActivity(false);scrollFeedToLatest()}boot();"
+          if s.count(boot_old) != 1:
+              raise SystemExit(f'boot anchor count != 1: {s.count(boot_old)}')
+          s = s.replace(boot_old, boot_new)
+
+          if 'issues/3' in activity_js or 'issues/10' in activity_js or 'issues/2' in activity_js:
+              raise SystemExit('Activity implementation must not hardcode Issue numbers')
+
+          path.write_text(s)
+          PY
+
+          git diff --check
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('index.html').read_text()
+          assert s.count('id="activityChart"') == 1
+          assert s.count('function loadActivity(') == 1
+          assert 'm.archives.filter' in s and "m.progress?.source?.type==='github_issue'" in s
+          assert "window.matchMedia('(max-width:980px)').matches" in s
+          m=re.search(r'<script>([\s\S]*?)</script>',s)
+          if not m: raise SystemExit('script block not found')
+          Path('/tmp/ai-dev-room.js').write_text(m.group(1))
+          PY
+          node --check /tmp/ai-dev-room.js
+
+      - name: Commit change and remove runner
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "ui: add manifest-driven Activity chart"
+          git push
+          git rm .github/workflows/tmp-activity-chart.yml
+          git commit -m "chore: remove temporary Activity chart runner"
+          git push

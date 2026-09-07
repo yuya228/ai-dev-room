@@ -3,22 +3,10 @@ const MODEL = "@cf/zai-org/glm-4.7-flash";
 
 const AGENTS = {
   manager: "Phase統括。全体進行と判断担当。短く現実的に話す。必要なら話をまとめるが、毎回仕切らない。",
-  codex: "Codex Sol。主実装担当。通常の実装・修正・統合に強い。コードや作業の話では実装目線で短く自然に話す。",
-  astra: "Codex Astra。高難度実装担当。難しい不具合、設計・推論負荷の高い実装、再現や原因調査が難しい話題で必要な時だけ参加する。独立レビュー担当ではない。",
-  luna: "Codex Luna。ファイル整理・軽作業担当。文書・ファイル整理、命名整合、不要ファイル確認、定型的な軽作業に強い。コードロジックや仕様判断を勝手に担当しない。",
+  codex: "Codex A。実装担当。コードや作業の話に強い。今はクレジット節約を意識する。実装目線の軽い一言やツッコミもする。",
   qa: "Work QA。レビュー・品質管理担当。必要な時だけ懸念、確認点、品質目線のツッコミを出す。",
   accounting: "AI経理。AIクレジット・時間・差し戻しコストを監視する。必要な時だけ節約目線で短くドライに話し、軽いツッコミは可。性別を感じさせる口調や『〜わね』『〜かしら』などの女性語、特定の方言には寄せない。何でもコストの話にしない。",
 };
-const AGENT_IDS = Object.keys(AGENTS);
-
-function cleanActiveAgents(value) {
-  if (!Array.isArray(value)) return [...AGENT_IDS];
-  const out = [];
-  for (const id of value) {
-    if (AGENT_IDS.includes(id) && !out.includes(id)) out.push(id);
-  }
-  return out;
-}
 
 function corsHeaders(origin) {
   const allowed = origin === ALLOWED_ORIGIN || origin === "http://localhost:8787";
@@ -65,7 +53,7 @@ function normalizeReplies(value) {
   return list
     .slice(0, 3)
     .map((r) => ({
-      agent: AGENT_IDS.includes(r?.agent) ? r.agent : "manager",
+      agent: ["manager", "codex", "qa", "accounting"].includes(r?.agent) ? r.agent : "manager",
       text: String(r?.text || "").trim().slice(0, 320),
     }))
     .filter((r) => r.text);
@@ -213,7 +201,6 @@ export default {
     const message = String(body?.message || "").trim().slice(0, 1000);
     const channel = body?.channel === "progress" ? "progress" : "chat";
     const history = cleanHistory(body?.history);
-    const activeAgents = cleanActiveAgents(body?.activeAgents);
 
     if (!message) return json({ error: "message is required" }, 400, origin);
 
@@ -221,20 +208,15 @@ export default {
       return json({ replies: [] }, 200, origin);
     }
 
-    if (!activeAgents.length) {
-      return json({ replies: [], model: MODEL }, 200, origin);
-    }
-
     const system = `あなたは「AI開発部」という架空のAI開発チームのSlack雑談チャンネルを演出するDispatcherです。
 
 参加AI:
-${activeAgents.map((id) => `- ${id}: ${AGENTS[id]}`).join("\n")}
+${Object.entries(AGENTS).map(([id, desc]) => `- ${id}: ${desc}`).join("\n")}
 
 目的:
 本物の社内Slackを眺めているような、短く自然な会話を作る。ユーザーへのFAQ回答大会にはしない。
 
 ルール:
-- 参加AIに列挙されたOnline AIだけから選ぶ。列挙されていないOffline AIは絶対に出力しない。
 - ユーザーの1投稿に対して、反応する必要があるAIだけを1〜3人選ぶ。
 - 1人で十分なら必ず1人だけにする。人数を増やすこと自体を目的にしない。
 - 2〜3人出す場合、1人目はユーザーに自然に反応し、2人目以降は可能なら直前のAI発言への補足・同意・軽い反論・ツッコミとして会話をつなぐ。
@@ -250,12 +232,11 @@ ${activeAgents.map((id) => `- ${id}: ${AGENTS[id]}`).join("\n")}
 - 出力順が、そのままSlack上の発言順になる。
 - 出力は説明なしのJSON配列のみ。
 
-出力条件:
-- agent は必ず次のOnline IDのいずれか: ${activeAgents.join(", ")}
-- JSON配列だけを返す。
+良い例:
+[{"agent":"accounting","text":"今日は無料枠で詰められるとこだけやっとくのがよさそう。"},{"agent":"manager","text":"せやな。じゃあ仕様とUIだけ固めて、重い実装は後ろに回すか。"}]
 
 出力形式:
-[{"agent":"${activeAgents[0]}","text":"..."}]`;
+[{"agent":"manager","text":"..."},{"agent":"accounting","text":"..."}]`;
 
     const context = history.length
       ? `直近の会話:\n${history.map((m) => `${m.speaker}: ${m.text}`).join("\n")}\n\nあなた: ${message}`
@@ -271,20 +252,14 @@ ${activeAgents.map((id) => `- ${id}: ${AGENTS[id]}`).join("\n")}
         temperature: 0.9,
       });
 
-      const parsedReplies = parseReplies(result);
-      if (!parsedReplies.length) {
+      const replies = parseReplies(result);
+      if (!replies.length) {
         const reason = finishReason(result);
         console.warn("Workers AI returned no displayable reply", { finishReason: reason || "unknown" });
         return json({
           error: "AI returned no displayable reply",
           detail: reason ? `finish_reason=${reason}` : "empty model content",
         }, 502, origin);
-      }
-
-      const replies = parsedReplies.filter((reply) => activeAgents.includes(reply.agent));
-      if (!replies.length) {
-        console.warn("Workers AI returned only inactive agents", { activeAgents });
-        return json({ replies: [], model: MODEL }, 200, origin);
       }
 
       return json({ replies, model: MODEL }, 200, origin);

@@ -1,0 +1,70 @@
+name: Presence foreground narrow fix
+
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-presence-foreground-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply narrow presence stacking fix
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          old_css = ".presence-member{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 2px;border-bottom:1px solid var(--line);position:relative;background:var(--bg);z-index:1}.presence-member-name"
+          new_css = ".presence-member{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 2px;border-bottom:1px solid var(--line);position:relative;background:var(--bg);z-index:1}.presence-member.presence-moving-target{z-index:3}.presence-member-name"
+          if s.count(old_css) != 1:
+              raise SystemExit(f'CSS anchor count={s.count(old_css)}')
+          s = s.replace(old_css, new_css, 1)
+
+          old_js = "row.style.order=on?10+onlineIndex++:110+offlineIndex++;btn.classList.toggle('on',on);"
+          new_js = "row.style.order=on?10+onlineIndex++:110+offlineIndex++;const changed=btn.getAttribute('aria-checked')!==String(on);if(motion&&changed){const motionToken=String((Number(row.dataset.presenceMotionToken)||0)+1);row.dataset.presenceMotionToken=motionToken;row.classList.add('presence-moving-target');setTimeout(()=>{if(row.dataset.presenceMotionToken===motionToken){row.classList.remove('presence-moving-target');delete row.dataset.presenceMotionToken}},PRESENCE_ROW_MAX_MS+40)}btn.classList.toggle('on',on);"
+          if s.count(old_js) != 1:
+              raise SystemExit(f'JS anchor count={s.count(old_js)}')
+          s = s.replace(old_js, new_js, 1)
+
+          p.write_text(s, encoding='utf-8')
+      - name: Verify scope and JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'presence-member.presence-moving-target{z-index:3}' index.html
+          grep -q "PRESENCE_ROW_MAX_MS+40" index.html
+          grep -q "transition:background-color .6s" index.html
+          grep -q "380+distance\*.7" index.html
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('index.html').read_text(encoding='utf-8')
+          scripts=re.findall(r'<script>(.*?)</script>',s,re.S)
+          if len(scripts)!=1:
+              raise SystemExit(f'script count={len(scripts)}')
+          Path('/tmp/index-script.js').write_text(scripts[0],encoding='utf-8')
+          PY
+          node --check /tmp/index-script.js
+          git diff --check
+          changed="$(git diff --name-only)"
+          test "$changed" = "index.html"
+      - name: Commit fix and remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Keep moving presence toggle in foreground'
+          git push
+          git rm .github/workflows/tmp-presence-foreground-fix.yml
+          git commit -m 'Remove temporary presence foreground helper'
+          git push

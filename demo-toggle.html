@@ -84,25 +84,25 @@ h1{font-size:18px;margin:0 0 6px}
 <body>
 <div class="wrap">
   <h1>Online / Offline トグル速度比較</h1>
-  <div class="lead">全部タップして比較できる。今回は「ちゃんと動きが見える」遅め寄りだけにした。</div>
+  <div class="lead">行移動は本番の現在値 360ms に固定。トグルだけかなり遅くして比較できる。</div>
   <div class="grid" id="grid"></div>
   <div class="note">
-    個人的には <b>560ms</b> か <b>700ms</b> が本命。<br>
-    トグルだけ遅くして、行移動はさらに +120〜180ms くらいにすると上品になりやすい。
+    行移動は全部 <b>360ms固定</b>。<br>
+    トグルだけ 700〜1400ms にして、実機で「ちゃんと動きが見える」境目を探すデモ。
   </div>
 </div>
 
 <script>
 const presets = [
-  {label:'A · 420ms', toggle:420, row:560},
-  {label:'B · 560ms', toggle:560, row:700},
-  {label:'C · 700ms', toggle:700, row:860},
-  {label:'D · 850ms', toggle:850, row:1020}
+  {label:'A · 700ms', toggle:700, row:360},
+  {label:'B · 900ms', toggle:900, row:360},
+  {label:'C · 1100ms', toggle:1100, row:360},
+  {label:'D · 1400ms', toggle:1400, row:360}
 ];
 
 const grid = document.getElementById('grid');
 
-function createDemo(preset, index){
+function createDemo(preset){
   const el = document.createElement('section');
   el.className='demo';
   el.innerHTML = `
@@ -129,44 +129,42 @@ function createDemo(preset, index){
   const onlineCount = el.querySelector('.online-count');
   const offlineCount = el.querySelector('.offline-count');
 
-  function bind(row){
-    const btn=row.querySelector('.toggle');
-    const knob=row.querySelector('.knob');
-    btn.style.transition = `background-color ${preset.toggle}ms cubic-bezier(.2,.75,.2,1), border-color ${preset.toggle}ms cubic-bezier(.2,.75,.2,1)`;
-    knob.style.transition = `transform ${preset.toggle}ms cubic-bezier(.2,.75,.2,1), background-color ${preset.toggle}ms cubic-bezier(.2,.75,.2,1)`;
+  const row=el.querySelector('.row');
+  const btn=row.querySelector('.toggle');
+  const knob=row.querySelector('.knob');
+  btn.style.transition = `background-color ${preset.toggle}ms cubic-bezier(.2,.75,.2,1), border-color ${preset.toggle}ms cubic-bezier(.2,.75,.2,1)`;
+  knob.style.transition = `transform ${preset.toggle}ms cubic-bezier(.2,.75,.2,1), background-color ${preset.toggle}ms cubic-bezier(.2,.75,.2,1)`;
 
-    btn.addEventListener('click', ()=>{
-      const wasOn=btn.classList.contains('on');
-      const before=row.getBoundingClientRect();
+  btn.addEventListener('click', ()=>{
+    const wasOn=btn.classList.contains('on');
+    const before=row.getBoundingClientRect();
 
-      btn.classList.toggle('on', !wasOn);
-      btn.setAttribute('aria-checked', String(!wasOn));
+    btn.classList.toggle('on', !wasOn);
+    btn.setAttribute('aria-checked', String(!wasOn));
 
-      const target = wasOn ? offlineRows : onlineRows;
-      target.appendChild(row);
+    const target = wasOn ? offlineRows : onlineRows;
+    target.appendChild(row);
 
-      const after=row.getBoundingClientRect();
-      const dy=before.top-after.top;
-      const dx=before.left-after.left;
+    const after=row.getBoundingClientRect();
+    const dy=before.top-after.top;
+    const dx=before.left-after.left;
 
-      row.animate(
-        [
-          {transform:`translate(${dx}px,${dy}px)`, opacity:.78},
-          {transform:'translate(0,0)', opacity:1}
-        ],
-        {duration:preset.row,easing:'cubic-bezier(.2,.75,.2,1)'}
-      );
+    row.animate(
+      [
+        {transform:`translate(${dx}px,${dy}px)`, opacity:.78},
+        {transform:'translate(0,0)', opacity:1}
+      ],
+      {duration:preset.row,easing:'cubic-bezier(.2,.75,.2,1)'}
+    );
 
-      onlineCount.textContent=onlineRows.children.length;
-      offlineCount.textContent=offlineRows.children.length;
-    });
-  }
+    onlineCount.textContent=onlineRows.children.length;
+    offlineCount.textContent=offlineRows.children.length;
+  });
 
-  bind(el.querySelector('.row'));
   return el;
 }
 
-presets.forEach((p,i)=>grid.appendChild(createDemo(p,i)));
+presets.forEach(p=>grid.appendChild(createDemo(p)));
 </script>
 </body>
 </html>

@@ -3,168 +3,40 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Presence Toggle Timing Demo</title>
+<title>Toggle Timing Diagnostic</title>
 <style>
-:root{
-  --bg:#111015;
-  --panel:#18161e;
-  --panel2:#211e28;
-  --line:rgba(255,255,255,.09);
-  --text:#f6f4f8;
-  --muted:#a9a2b1;
-  --green:#42d392;
-}
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}
-body{padding:20px}
-.wrap{max-width:760px;margin:0 auto}
-h1{font-size:18px;margin:0 0 6px}
-.lead{font-size:12px;line-height:1.6;color:var(--muted);margin-bottom:18px}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.demo{
-  border:1px solid rgba(255,255,255,.07);
-  border-radius:14px;
-  background:#17151d;
-  overflow:hidden;
-}
-.head{
-  padding:13px 14px 10px;
-  border-bottom:1px solid var(--line);
-}
-.title{font-size:13px;font-weight:850}
-.meta{font-size:10px;color:var(--muted);margin-top:4px}
-.groups{padding:8px 12px 12px}
-.group-label{
-  display:flex;justify-content:space-between;
-  font-size:10px;font-weight:800;color:#8f8798;
-  padding:8px 2px 6px;
-  border-bottom:1px solid var(--line);
-}
-.group-label.off{border-top:1px solid var(--line);margin-top:2px}
-.rows{position:relative}
-.row{
-  display:grid;
-  grid-template-columns:30px minmax(0,1fr) auto;
-  gap:11px;
-  align-items:center;
-  min-height:54px;
-  padding:9px 2px;
-  border-bottom:1px solid rgba(255,255,255,.055);
-}
-.avatar{
-  width:30px;height:30px;border-radius:9px;
-  display:grid;place-items:center;font-size:9px;font-weight:900;
-  background:linear-gradient(135deg,#3f8cff,#55d6be);
-}
-.name{font-size:12px;font-weight:850}
-.role{font-size:9px;color:var(--muted);margin-top:3px}
-.toggle{
-  width:46px;height:27px;padding:0;border-radius:999px;
-  border:1px solid rgba(255,255,255,.12);
-  background:#2b2831;position:relative;cursor:pointer;
-}
-.knob{
-  position:absolute;left:3px;top:3px;width:19px;height:19px;border-radius:50%;
-  background:#8f8897;
-  transform:translateX(0);
-}
-.toggle.on{background:rgba(66,211,146,.15);border-color:rgba(66,211,146,.30)}
-.toggle.on .knob{transform:translateX(18px);background:var(--green)}
-.note{
-  margin-top:16px;padding:12px 13px;border-radius:12px;
-  background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.055);
-  color:var(--muted);font-size:11px;line-height:1.65;
-}
-@media(max-width:640px){
-  body{padding:14px}
-  .grid{grid-template-columns:1fr}
-}
+:root{--bg:#111015;--panel:#18161e;--line:rgba(255,255,255,.09);--text:#f6f4f8;--muted:#a9a2b1;--green:#42d392}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}body{padding:18px}.wrap{max-width:720px;margin:0 auto}h1{font-size:18px;margin:0 0 6px}.lead{font-size:12px;line-height:1.65;color:var(--muted);margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.card{border:1px solid rgba(255,255,255,.07);border-radius:14px;background:#17151d;padding:14px}.title{font-size:13px;font-weight:850}.meta{font-size:10px;color:var(--muted);margin-top:4px}.stage{height:82px;display:flex;align-items:center;justify-content:center}.toggle{width:70px;height:38px;padding:0;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:#2b2831;position:relative;cursor:pointer}.knob{position:absolute;left:4px;top:4px;width:28px;height:28px;border-radius:50%;background:#8f8897;transform:translateX(0)}.toggle.on{background:rgba(66,211,146,.15);border-color:rgba(66,211,146,.30)}.toggle.on .knob{transform:translateX(32px);background:var(--green)}.readout{font-size:10px;color:#c9c3ce;min-height:32px;line-height:1.55}.bar{height:4px;border-radius:999px;background:#302b38;overflow:hidden;margin-top:8px}.bar span{display:block;width:0;height:100%;background:#8d52ff}.note{margin-top:14px;padding:12px 13px;border-radius:12px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.055);font-size:11px;line-height:1.65;color:var(--muted)}
+@media(max-width:640px){body{padding:14px}.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Online / Offline トグル速度比較</h1>
-  <div class="lead">行移動は本番の現在値 360ms に固定。トグルだけかなり遅くして比較できる。</div>
-  <div class="grid" id="grid"></div>
-  <div class="note">
-    行移動は全部 <b>360ms固定</b>。<br>
-    トグルだけ 700〜1400ms にして、実機で「ちゃんと動きが見える」境目を探すデモ。
-  </div>
+<h1>トグル単体 診断デモ</h1>
+<div class="lead">行移動・DOM移動・並び替えを全部外した。4つとも同じ場所で、つまみの移動だけ比較する。差が見えなければiPhone側の描画/キャッシュを疑える。</div>
+<div class="grid" id="grid"></div>
+<div class="note">今回は移動距離も18px→32pxへ広げてある。タップ後、下のバーも設定時間と同じ速度で伸びるので、つまみだけおかしいのかページ全体のtransitionがおかしいのかも見分けられる。</div>
 </div>
-
 <script>
-const presets = [
-  {label:'A · 700ms', toggle:700, row:360},
-  {label:'B · 900ms', toggle:900, row:360},
-  {label:'C · 1100ms', toggle:1100, row:360},
-  {label:'D · 1400ms', toggle:1400, row:360}
-];
-
-const grid = document.getElementById('grid');
-
-function createDemo(preset){
-  const el = document.createElement('section');
-  el.className='demo';
-  el.innerHTML = `
-    <div class="head">
-      <div class="title">${preset.label}</div>
-      <div class="meta">トグル ${preset.toggle}ms / 行移動 ${preset.row}ms</div>
-    </div>
-    <div class="groups">
-      <div class="group-label"><span>Online</span><span class="online-count">1</span></div>
-      <div class="rows online-rows">
-        <div class="row" data-id="sol">
-          <div class="avatar">CX</div>
-          <div><div class="name">Codex Sol</div><div class="role">Main Implementation</div></div>
-          <button class="toggle on" type="button" aria-checked="true"><span class="knob"></span></button>
-        </div>
-      </div>
-      <div class="group-label off"><span>Offline</span><span class="offline-count">0</span></div>
-      <div class="rows offline-rows"></div>
-    </div>
-  `;
-
-  const onlineRows = el.querySelector('.online-rows');
-  const offlineRows = el.querySelector('.offline-rows');
-  const onlineCount = el.querySelector('.online-count');
-  const offlineCount = el.querySelector('.offline-count');
-
-  const row=el.querySelector('.row');
-  const btn=row.querySelector('.toggle');
-  const knob=row.querySelector('.knob');
-  btn.style.transition = `background-color ${preset.toggle}ms cubic-bezier(.2,.75,.2,1), border-color ${preset.toggle}ms cubic-bezier(.2,.75,.2,1)`;
-  knob.style.transition = `transform ${preset.toggle}ms cubic-bezier(.2,.75,.2,1), background-color ${preset.toggle}ms cubic-bezier(.2,.75,.2,1)`;
-
-  btn.addEventListener('click', ()=>{
-    const wasOn=btn.classList.contains('on');
-    const before=row.getBoundingClientRect();
-
-    btn.classList.toggle('on', !wasOn);
-    btn.setAttribute('aria-checked', String(!wasOn));
-
-    const target = wasOn ? offlineRows : onlineRows;
-    target.appendChild(row);
-
-    const after=row.getBoundingClientRect();
-    const dy=before.top-after.top;
-    const dx=before.left-after.left;
-
-    row.animate(
-      [
-        {transform:`translate(${dx}px,${dy}px)`, opacity:.78},
-        {transform:'translate(0,0)', opacity:1}
-      ],
-      {duration:preset.row,easing:'cubic-bezier(.2,.75,.2,1)'}
-    );
-
-    onlineCount.textContent=onlineRows.children.length;
-    offlineCount.textContent=offlineRows.children.length;
+const presets=[700,1200,2000,3000];
+const grid=document.getElementById('grid');
+for(const ms of presets){
+  const card=document.createElement('section');card.className='card';
+  card.innerHTML=`<div class="title">${ms}ms</div><div class="meta">トグル単体 / 行移動なし</div><div class="stage"><button class="toggle on" type="button" aria-checked="true"><span class="knob"></span></button></div><div class="readout">タップして比較</div><div class="bar"><span></span></div>`;
+  const btn=card.querySelector('.toggle'),knob=card.querySelector('.knob'),readout=card.querySelector('.readout'),fill=card.querySelector('.bar span');
+  const ease='linear';
+  btn.style.transition=`background-color ${ms}ms ${ease},border-color ${ms}ms ${ease}`;
+  knob.style.transition=`transform ${ms}ms ${ease},background-color ${ms}ms ${ease}`;
+  fill.style.transition=`width ${ms}ms ${ease}`;
+  let seq=0;
+  btn.addEventListener('click',()=>{
+    seq+=1;const n=seq,start=performance.now(),next=!btn.classList.contains('on');
+    btn.classList.toggle('on',next);btn.setAttribute('aria-checked',String(next));fill.style.width=next?'100%':'0%';
+    readout.textContent=`${next?'ON':'OFF'}へ移動中… 0 / ${ms}ms`;
+    const tick=()=>{if(n!==seq)return;const elapsed=Math.min(ms,Math.round(performance.now()-start));readout.textContent=`${next?'ON':'OFF'}へ移動中… ${elapsed} / ${ms}ms`;if(elapsed<ms)requestAnimationFrame(tick);else readout.textContent=`${next?'ON':'OFF'} 完了 · 実測 約${elapsed}ms`};requestAnimationFrame(tick);
   });
-
-  return el;
+  grid.appendChild(card);
 }
-
-presets.forEach(p=>grid.appendChild(createDemo(p)));
 </script>
 </body>
 </html>

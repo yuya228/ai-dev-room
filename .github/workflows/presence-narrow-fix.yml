@@ -1,0 +1,57 @@
+name: Presence narrow fix
+
+on:
+  push:
+    paths:
+      - .github/workflows/presence-narrow-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  narrow-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore unrelated Astra token
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          old = "radial-gradient(circle at 16.67% 56.67%,rgba(255,255,255,.20) 0 .78px,transparent .8px)"
+          new = "radial-gradient(circle at 16.67% 56.67%,rgba(255,255,255,.20) 0 .78px,transparent 1px)"
+          count = s.count(old)
+          if count != 1:
+              raise SystemExit(f'expected exactly one accidental Astra token, found {count}')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+          PY
+
+      - name: Check inline JavaScript syntax
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s = Path('index.html').read_text(encoding='utf-8')
+          m = re.search(r'<script>(.*)</script>', s, re.S)
+          if not m:
+              raise SystemExit('inline script not found')
+          Path('/tmp/ai-dev-room-inline.js').write_text(m.group(1), encoding='utf-8')
+          PY
+          node --check /tmp/ai-dev-room-inline.js
+
+      - name: Commit fix and remove helper
+        shell: bash
+        run: |
+          rm .github/workflows/presence-narrow-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .github/workflows/presence-narrow-fix.yml
+          git diff --cached --check
+          git commit -m "Restore unrelated Astra avatar token"
+          git push

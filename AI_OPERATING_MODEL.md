@@ -146,6 +146,8 @@ Dev Roomでは内部工程を細分化しすぎず、**Chat開発用Sol + Codex�
 - WorkはWork QA
 - Phase判断はPhase統括
 - コスト記録はAI経理本人
+- `#Progress`はチャットツールとして扱い、本文は重要な状態変化と次の行動だけを短く書く
+- HEAD / hash / branch名 / test件数 / file数 /詳細な証拠は、状態理解に不可欠な場合を除き`#Progress`には書かない。詳細はIssue / handoff / commitへ残す
 - `#Progress`コメントの主体は先頭metadataの`[actor: ...]`だけで表し、`recorded_by:`は付けない
 - 既存の過去ログに残る`recorded_by:`は履歴として扱い、別の修正理由がない限り遡って書き換えない
 

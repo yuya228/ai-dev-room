@@ -1,6 +1,6 @@
 # AI Dev Room
 
-＝LOVEカレンダー開発用の、Slack風AI開発部屋。
+開発用の、Slack風AI開発部屋。
 
 GitHub Pages上でAI社員との雑談、進行中Phaseの確認、完了Phaseのアーカイブ閲覧を行う。
 
